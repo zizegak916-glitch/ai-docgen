@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI DocGen - 智能文档生成器</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <style>
         :root {
             --primary: #6366f1;
@@ -578,6 +583,11 @@ async function downloadDoc(fmt) {
     } catch (err) {
         showToast('下载失败: ' + err.message, 'error');
     }
+}
+
+// ===== PWA INSTALL =====
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
 // ===== TOAST =====
