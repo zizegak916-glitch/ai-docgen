@@ -40,5 +40,8 @@ class BaseAnalyzer(ABC):
 
     def _scan_files(self, pattern: str) -> list[str]:
         """扫描匹配模式的文件"""
+        # 支持递归扫描
+        if not pattern.startswith("**"):
+            pattern = f"**/{pattern}"
         search_pattern = os.path.join(self.project_path, pattern)
         return glob.glob(search_pattern, recursive=True)

@@ -12,7 +12,28 @@ ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
 
 
 class AndroidAccessibilityAnalyzer(BaseAnalyzer):
-    """Android无障碍服务分析器"""
+    """Android无障碍服务分析器 - 专注悬浮窗/浮窗按钮"""
+
+    OVERLAY_KEYWORDS = [
+        "WindowManager",
+        "TYPE_APPLICATION_OVERLAY",
+        "TYPE_SYSTEM_ALERT",
+        "SYSTEM_ALERT_WINDOW",
+        "addView",
+        "removeView",
+        "floating",
+        "overlay",
+        "bubble",
+        "float",
+        "popup_window",
+        "toast",
+    ]
+
+    OVERLAY_PERMISSIONS = [
+        "SYSTEM_ALERT_WINDOW",
+        "FOREGROUND_SERVICE",
+        "BIND_ACCESSIBILITY_SERVICE",
+    ]
 
     def get_platform(self) -> str:
         return "android"
@@ -22,26 +43,30 @@ class AndroidAccessibilityAnalyzer(BaseAnalyzer):
             "platform": "android",
             "manifest": {},
             "accessibility_service": {},
+            "overlay_config": {},
+            "floating_buttons": [],
             "layouts": [],
-            "resources": [],
-            "dependencies": [],
             "source_files": [],
-            "accessibility_events": [],
+            "permissions": [],
         }
 
         manifest_info = self._parse_manifest()
         result["manifest"] = manifest_info
+        result["permissions"] = manifest_info.get("permissions", [])
 
         service_info = self._extract_service_config(manifest_info)
         result["accessibility_service"] = service_info
 
-        result["layouts"] = self._parse_layouts()
-        result["resources"] = self._parse_resources()
-        result["dependencies"] = self._parse_gradle()
-        result["source_files"] = self._scan_source_files()
-        result["accessibility_events"] = self._extract_accessibility_events()
+        overlay_info = self._analyze_overlay()
+        result["overlay_config"] = overlay_info
 
-        logger.info("Android无障碍服务分析完成")
+        floating_buttons = self._extract_floating_buttons()
+        result["floating_buttons"] = floating_buttons
+
+        result["layouts"] = self._parse_layouts()
+        result["source_files"] = self._scan_source_files()
+
+        logger.info("Android无障碍悬浮窗分析完成")
         return result
 
     def _parse_manifest(self) -> dict[str, Any]:
@@ -54,124 +79,154 @@ class AndroidAccessibilityAnalyzer(BaseAnalyzer):
                 "package": tree.get("package", ""),
                 "permissions": [],
                 "services": [],
+                "has_overlay_permission": False,
             }
 
             for perm in tree.findall("uses-permission"):
                 name = perm.get(f"{ANDROID_NS}name", "")
                 if name:
                     info["permissions"].append(name)
+                    if "SYSTEM_ALERT_WINDOW" in name:
+                        info["has_overlay_permission"] = True
 
             for service in tree.findall(".//service"):
                 svc_info = {
                     "name": service.get(f"{ANDROID_NS}name", ""),
                     "permission": service.get(f"{ANDROID_NS}permission", ""),
-                    "meta_data": [],
+                    "exported": service.get(f"{ANDROID_NS}exported", "false"),
                 }
-                for meta in service.findall("meta-data"):
-                    svc_info["meta_data"].append({
-                        "name": meta.get(f"{ANDROID_NS}name", ""),
-                        "value": meta.get(f"{ANDROID_NS}value", ""),
-                    })
+                meta_data = service.findall("meta-data")
+                for md in meta_data:
+                    md_name = md.get(f"{ANDROID_NS}name", "")
+                    md_value = md.get(f"{ANDROID_NS}value", "")
+                    if "accessibility" in md_name.lower():
+                        svc_info["accessibility_config"] = md_value
                 info["services"].append(svc_info)
 
             return info
         except ElementTree.ParseError as e:
-            logger.error("AndroidManifest.xml 解析失败: %s", e)
+            logger.error(f"解析 AndroidManifest.xml 失败: {e}")
             return {}
 
     def _extract_service_config(self, manifest_info: dict) -> dict[str, Any]:
-        config: dict[str, Any] = {
-            "service_class": "",
-            "accessibility_event_types": [],
-            "accessibility_feedback_type": "",
-            "can_access_window_content": False,
-            "notification_timeout": 0,
-            "settings_activity": "",
-            "description": "",
+        config = {
+            "service_count": len(manifest_info.get("services", [])),
+            "has_accessibility_service": False,
+            "config_file": "",
+            "accessibility_events": [],
         }
 
-        for service in manifest_info.get("services", []):
-            if "accessibility" in service["name"].lower() or "Accessibility" in service["name"]:
-                config["service_class"] = service["name"]
-                for meta in service["meta_data"]:
-                    value = meta["value"]
-                    if "eventTypes" in meta["name"]:
-                        config["accessibility_event_types"] = value.split("|")
-                    elif "feedbackType" in meta["name"]:
-                        config["accessibility_feedback_type"] = value
-                    elif "canRetrieveWindowContent" in meta["name"]:
-                        config["can_access_window_content"] = value.lower() == "true"
-                    elif "notificationTimeout" in meta["name"]:
-                        config["notification_timeout"] = int(value) if value.isdigit() else 0
-                    elif "settingsActivity" in meta["name"]:
-                        config["settings_activity"] = value
+        for svc in manifest_info.get("services", []):
+            if "accessibility" in svc.get("accessibility_config", "").lower():
+                config["has_accessibility_service"] = True
+                config["config_file"] = svc.get("accessibility_config", "")
 
-        desc_path = self._find_file("accessibility_service_config.xml")
-        if desc_path:
-            config["description"] = self._read_file(desc_path)
+        xml_files = self._scan_files("*.xml")
+        for f in xml_files:
+            if "accessibility" in f.lower():
+                content = self._read_file(f)
+                if content:
+                    events = re.findall(r'android:accessibilityEventTypes="[^"]*"([^"]*)', content)
+                    if events:
+                        config["accessibility_events"] = events[0].split("|")
+                    config["config_file"] = f
+                    break
 
         return config
 
-    def _parse_layouts(self) -> list[dict[str, str]]:
-        layouts = []
-        for path in self._scan_files("**/res/layout/**/*.xml"):
-            rel = os.path.relpath(path, self.project_path)
-            content = self._read_file(rel)
-            name = os.path.splitext(os.path.basename(path))[0]
-            layouts.append({"name": name, "path": rel, "content": content})
-        return layouts
+    def _analyze_overlay(self) -> dict[str, Any]:
+        overlay = {
+            "has_overlay": False,
+            "overlay_type": "",
+            "window_manager_usage": False,
+            "floating_service": False,
+            "overlay_files": [],
+            "code_snippets": [],
+        }
 
-    def _parse_resources(self) -> list[dict[str, str]]:
-        resources = []
-        for path in self._scan_files("**/res/values/**/*.xml"):
-            rel = os.path.relpath(path, self.project_path)
-            content = self._read_file(rel)
-            name = os.path.splitext(os.path.basename(path))[0]
-            resources.append({"name": name, "path": rel, "content": content})
-        return resources
-
-    def _parse_gradle(self) -> list[dict[str, str]]:
-        deps = []
-        for gradle_name in ("build.gradle", "build.gradle.kts"):
-            content = self._read_file(gradle_name)
+        java_files = self._scan_files("*.java") + self._scan_files("*.kt")
+        for f in java_files:
+            content = self._read_file(f)
             if not content:
                 continue
-            for match in re.finditer(r"implementation\s+['\"](.+?)['\"]", content):
-                deps.append({"dependency": match.group(1), "file": gradle_name})
-            break
-        return deps
 
-    def _scan_source_files(self) -> list[dict[str, str]]:
-        sources = []
-        for ext in ("java", "kt"):
-            for path in self._scan_files(f"**/*.{ext}"):
-                rel = os.path.relpath(path, self.project_path)
-                content = self._read_file(rel)
-                if "AccessibilityService" in content or "AccessibilityEvent" in content:
-                    sources.append({
-                        "path": rel,
-                        "language": "kotlin" if ext == "kt" else "java",
-                        "content": content,
-                    })
-        return sources
+            if "WindowManager" in content:
+                overlay["window_manager_usage"] = True
+                overlay["has_overlay"] = True
 
-    def _extract_accessibility_events(self) -> list[str]:
-        event_types = [
-            "TYPE_VIEW_CLICKED", "TYPE_VIEW_LONG_CLICKED", "TYPE_VIEW_FOCUSED",
-            "TYPE_VIEW_TEXT_CHANGED", "TYPE_WINDOW_STATE_CHANGED",
-            "TYPE_WINDOW_CONTENT_CHANGED", "TYPE_VIEW_SCROLLED",
-            "TYPE_ANNOUNCEMENT", "TYPE_TOUCH_EXPLORATION_GESTURE_START",
-            "TYPE_VIEW_ACCESSIBILITY_FOCUSED",
-        ]
-        found = set()
-        for source in self._scan_source_files():
-            content = source.get("content", "")
-            for event in event_types:
-                if event in content:
-                    found.add(event)
-        return sorted(found)
+            if "TYPE_APPLICATION_OVERLAY" in content:
+                overlay["overlay_type"] = "APPLICATION_OVERLAY"
+                overlay["has_overlay"] = True
 
-    def _find_file(self, filename: str) -> str | None:
-        for path in self._scan_files(f"**/{filename}"):
-            return os.path.relpath(path, self.project_path)
-        return None
+            if "TYPE_SYSTEM_ALERT" in content:
+                overlay["overlay_type"] = "SYSTEM_ALERT"
+                overlay["has_overlay"] = True
+
+            if "addView" in content and "WindowManager" in content:
+                overlay["floating_service"] = True
+
+            for keyword in self.OVERLAY_KEYWORDS:
+                if keyword in content:
+                    overlay["overlay_files"].append(f)
+                    snippet = self._extract_code_snippet(content, keyword)
+                    if snippet:
+                        overlay["code_snippets"].append({
+                            "file": f,
+                            "keyword": keyword,
+                            "snippet": snippet,
+                        })
+                    break
+
+        return overlay
+
+    def _extract_code_snippet(self, content: str, keyword: str, context_lines: int = 5) -> str:
+        lines = content.split("\n")
+        for i, line in enumerate(lines):
+            if keyword in line:
+                start = max(0, i - context_lines)
+                end = min(len(lines), i + context_lines + 1)
+                return "\n".join(lines[start:end])
+        return ""
+
+    def _extract_floating_buttons(self) -> list[dict[str, Any]]:
+        buttons = []
+        java_files = self._scan_files("*.java") + self._scan_files("*.kt")
+
+        for f in java_files:
+            content = self._read_file(f)
+            if not content:
+                continue
+
+            button_patterns = [
+                (r'Button\s*\(\s*[^)]*\)', "Button"),
+                (r'ImageButton\s*\(\s*[^)]*\)', "ImageButton"),
+                (r'FloatingActionButton', "FAB"),
+                (r'findViewById\s*\([^)]*\.id\.[^)]*\)', "View"),
+            ]
+
+            for pattern, btn_type in button_patterns:
+                matches = re.findall(pattern, content)
+                for match in matches:
+                    btn_info = {
+                        "type": btn_type,
+                        "file": f,
+                        "code": match[:100],
+                    }
+                    buttons.append(btn_info)
+
+        return buttons
+
+    def _parse_layouts(self) -> list[dict[str, str]]:
+        layouts = []
+        layout_files = self._scan_files("*.xml")
+        for f in layout_files:
+            if "layout" in f.lower():
+                content = self._read_file(f)
+                if content:
+                    layouts.append({"file": f, "content": content[:500]})
+        return layouts
+
+    def _scan_source_files(self) -> list[str]:
+        java_files = self._scan_files("*.java")
+        kt_files = self._scan_files("*.kt")
+        return java_files + kt_files
