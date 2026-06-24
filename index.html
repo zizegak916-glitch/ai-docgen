@@ -178,11 +178,51 @@
         .toast-success { background: var(--success); color: white; }
         .toast-error { background: var(--error); color: white; }
 
+        /* Upload methods */
+        .upload-methods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
+        .upload-method {
+            display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+            padding: 0.8rem 0.5rem; border-radius: 10px; border: 1px solid var(--border);
+            background: var(--bg2); color: var(--text); cursor: pointer;
+            transition: all 0.2s; font-size: 0.75rem;
+        }
+        .upload-method:hover { border-color: var(--primary); background: #6366f110; transform: translateY(-2px); }
+        .upload-method:active { transform: translateY(0) scale(0.97); }
+        .method-icon { font-size: 1.5rem; }
+        .method-label { font-weight: 500; }
+
+        /* Paste modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            z-index: 1000; align-items: center; justify-content: center; padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--card); border-radius: 16px; border: 1px solid var(--border);
+            padding: 1.5rem; width: 100%; max-width: 500px; max-height: 80vh;
+        }
+        .modal h3 { font-size: 1rem; margin-bottom: 0.75rem; }
+        .modal textarea {
+            width: 100%; height: 200px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text); padding: 0.75rem; font-family: monospace;
+            font-size: 0.8rem; resize: vertical;
+        }
+        .modal textarea:focus { outline: none; border-color: var(--primary); }
+        .modal-inputs { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+        .modal-inputs input {
+            flex: 1; min-width: 120px; padding: 0.5rem 0.75rem; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg); color: var(--text);
+            font-size: 0.8rem;
+        }
+        .modal-inputs input:focus { outline: none; border-color: var(--primary); }
+        .modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
+
         @media (max-width: 600px) {
             .header { padding: 1.5rem 1rem 1rem; }
             h1 { font-size: 1.8rem; }
             .container { padding: 1rem; }
             .card { padding: 1.2rem; }
+            .upload-methods { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -212,7 +252,7 @@
         </div>
 
         <div class="file-info" id="file-info">
-            <span class="file-icon">📦</span>
+            <span class="file-icon" id="file-icon">📦</span>
             <div>
                 <div class="file-name" id="file-name"></div>
                 <div class="file-size" id="file-size"></div>
@@ -220,12 +260,35 @@
             <span class="file-remove" onclick="clearFile()">✕</span>
         </div>
 
-        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+        <div class="upload-zone" id="upload-zone">
             <div class="upload-icon">📁</div>
-            <div class="upload-text">拖拽 <strong>.zip</strong> 到此处，或 <strong style="color: var(--primary)">点击选择</strong></div>
-            <div class="upload-hint">纯前端分析，文件不会上传到任何服务器</div>
+            <div class="upload-text">拖拽文件/文件夹到此处</div>
+            <div class="upload-hint">或选择上传方式：</div>
         </div>
-        <input type="file" class="file-input" id="file-input" accept=".zip" onchange="handleFileSelect(event)">
+
+        <!-- 三种上传入口 -->
+        <div class="upload-methods">
+            <button class="upload-method" onclick="document.getElementById('file-input-zip').click()">
+                <span class="method-icon">📦</span>
+                <span class="method-label">ZIP</span>
+            </button>
+            <button class="upload-method" onclick="document.getElementById('file-input-folder').click()">
+                <span class="method-icon">📂</span>
+                <span class="method-label">文件夹</span>
+            </button>
+            <button class="upload-method" onclick="document.getElementById('file-input-multi').click()">
+                <span class="method-icon">📄</span>
+                <span class="method-label">多文件</span>
+            </button>
+            <button class="upload-method" onclick="showPasteModal()">
+                <span class="method-icon">📋</span>
+                <span class="method-label">粘贴代码</span>
+            </button>
+        </div>
+
+        <input type="file" class="file-input" id="file-input-zip" accept=".zip" onchange="handleFileSelect(event,'zip')">
+        <input type="file" class="file-input" id="file-input-folder" webkitdirectory onchange="handleFolderSelect(event)">
+        <input type="file" class="file-input" id="file-input-multi" multiple onchange="handleMultiSelect(event)">
 
         <div class="progress-bar" id="progress-bar" style="display:none"><div class="progress-fill" id="progress-fill"></div></div>
 
@@ -280,6 +343,27 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 粘贴代码弹窗 -->
+<div class="modal-overlay" id="paste-modal">
+    <div class="modal">
+        <h3>📋 粘贴代码</h3>
+        <textarea id="paste-code" placeholder="粘贴你的代码到这里..."></textarea>
+        <div class="modal-inputs">
+            <input type="text" id="paste-filename" placeholder="文件名 (如 main.js)">
+            <select id="paste-platform" style="padding:0.5rem 0.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.8rem;">
+                <option value="auto">自动检测</option>
+                <option value="chrome">Chrome 扩展</option>
+                <option value="android">Android</option>
+                <option value="ios">iOS</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closePasteModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitPaste()">分析</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ============================================================
 // STATE
@@ -288,6 +372,7 @@ let selectedFile = null;
 let selectedPlatform = 'auto';
 let currentResult = null;
 let zipFiles = {}; // {path: content}
+let inputMode = 'zip'; // zip | folder | multi | paste
 
 // ============================================================
 // UI HELPERS
@@ -303,25 +388,161 @@ uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.cl
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
 uploadZone.addEventListener('drop', e => {
     e.preventDefault(); uploadZone.classList.remove('dragover');
-    const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.zip')) setFile(f);
-    else showToast('仅支持 .zip', 'error');
+    const items = e.dataTransfer.items;
+    if (items) {
+        // 检查是否有文件夹
+        const entries = [];
+        for (let i = 0; i < items.length; i++) {
+            const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+            if (entry) entries.push(entry);
+        }
+        if (entries.length) {
+            handleDroppedEntries(entries);
+            return;
+        }
+    }
+    // 普通文件
+    const files = e.dataTransfer.files;
+    if (files.length === 1 && files[0].name.endsWith('.zip')) {
+        setFile(files[0], 'zip');
+    } else if (files.length > 0) {
+        handleMultipleFiles(files);
+    } else {
+        showToast('请选择文件', 'error');
+    }
 });
 
-function handleFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
+async function handleDroppedEntries(entries) {
+    const files = {};
+    async function readEntry(entry, path) {
+        if (entry.isFile) {
+            return new Promise(resolve => {
+                entry.file(file => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        files[path + file.name] = reader.result;
+                        resolve();
+                    };
+                    reader.readAsText(file);
+                });
+            });
+        } else if (entry.isDirectory) {
+            const reader = entry.createReader();
+            return new Promise(resolve => {
+                const allEntries = [];
+                function readBatch() {
+                    reader.readEntries(async batch => {
+                        if (batch.length === 0) {
+                            for (const e of allEntries) {
+                                await readEntry(e, path + entry.name + '/');
+                            }
+                            resolve();
+                        } else {
+                            allEntries.push(...batch);
+                            readBatch();
+                        }
+                    });
+                }
+                readBatch();
+            });
+        }
+    }
+    for (const entry of entries) {
+        await readEntry(entry, '');
+    }
+    if (Object.keys(files).length > 0) {
+        zipFiles = files;
+        inputMode = 'folder';
+        const name = entries.length === 1 ? entries[0].name : entries.length + '个项目';
+        setFileReady(name, countSize(files), '📂');
+        showToast('✅ 已加载 ' + Object.keys(files).length + ' 个文件', 'success');
+    }
+}
 
-function setFile(file) {
+function countSize(obj) {
+    let total = 0;
+    for (const v of Object.values(obj)) total += (v || '').length;
+    return total;
+}
+
+function handleFileSelect(e, type) {
+    const f = e.target.files[0];
+    if (f) setFile(f, type || 'zip');
+}
+
+function handleFolderSelect(e) {
+    const files = e.target.files;
+    if (!files.length) return;
+    zipFiles = {};
+    inputMode = 'folder';
+    let loaded = 0;
+    const total = files.length;
+
+    for (const file of files) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            zipFiles[file.webkitRelativePath || file.name] = reader.result;
+            loaded++;
+            if (loaded === total) {
+                const rootFolder = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : '项目';
+                setFileReady(rootFolder, countSize(zipFiles), '📂');
+                showToast('✅ 已加载 ' + total + ' 个文件', 'success');
+            }
+        };
+        reader.readAsText(file);
+    }
+}
+
+function handleMultiSelect(e) {
+    const files = e.target.files;
+    if (!files.length) return;
+    handleMultipleFiles(files);
+}
+
+function handleMultipleFiles(files) {
+    zipFiles = {};
+    inputMode = 'multi';
+    let loaded = 0;
+    const total = files.length;
+
+    for (const file of files) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            zipFiles[file.name] = reader.result;
+            loaded++;
+            if (loaded === total) {
+                setFileReady(total + '个文件', countSize(zipFiles), '📄');
+                showToast('✅ 已加载 ' + total + ' 个文件', 'success');
+            }
+        };
+        reader.readAsText(file);
+    }
+}
+
+function setFile(file, type) {
     selectedFile = file;
-    document.getElementById('file-name').textContent = file.name;
-    document.getElementById('file-size').textContent = formatSize(file.size);
+    inputMode = type || 'zip';
+    setFileReady(file.name, file.size, type === 'zip' ? '📦' : '📄');
+}
+
+function setFileReady(name, size, icon) {
+    document.getElementById('file-name').textContent = name;
+    document.getElementById('file-size').textContent = typeof size === 'number' ? formatSize(size) : size + ' 字符';
+    document.getElementById('file-icon').textContent = icon || '📦';
     document.getElementById('file-info').classList.add('active');
     uploadZone.style.display = 'none';
+    document.querySelector('.upload-methods').style.display = 'none';
     document.getElementById('analyze-btn').disabled = false;
 }
+
 function clearFile() {
-    selectedFile = null; document.getElementById('file-input').value = '';
+    selectedFile = null; zipFiles = {};
+    document.getElementById('file-input-zip').value = '';
+    document.getElementById('file-input-folder').value = '';
+    document.getElementById('file-input-multi').value = '';
     document.getElementById('file-info').classList.remove('active');
     uploadZone.style.display = 'block';
+    document.querySelector('.upload-methods').style.display = 'grid';
     document.getElementById('analyze-btn').disabled = true;
 }
 function formatSize(b) { return b < 1024 ? b+'B' : b < 1048576 ? (b/1024).toFixed(1)+'KB' : (b/1048576).toFixed(1)+'MB'; }
@@ -342,61 +563,80 @@ function setLoading(show, detail) {
 }
 
 // ============================================================
+// PASTE MODAL
+// ============================================================
+function showPasteModal() { document.getElementById('paste-modal').classList.add('active'); }
+function closePasteModal() { document.getElementById('paste-modal').classList.remove('active'); }
+function submitPaste() {
+    const code = document.getElementById('paste-code').value.trim();
+    const filename = document.getElementById('paste-filename').value.trim() || 'code.js';
+    const platform = document.getElementById('paste-platform').value;
+    if (!code) { showToast('请粘贴代码', 'error'); return; }
+
+    zipFiles = {};
+    zipFiles[filename] = code;
+    inputMode = 'paste';
+    if (platform !== 'auto') selectedPlatform = platform;
+
+    closePasteModal();
+    setFileReady(filename, code.length, '📋');
+    showToast('✅ 代码已粘贴', 'success');
+}
+
+// ============================================================
 // MAIN ANALYSIS
 // ============================================================
 async function analyzeProject() {
-    if (!selectedFile) return;
     const btn = document.getElementById('analyze-btn');
     btn.disabled = true;
-    setLoading(true, '解压文件...');
+    setLoading(true, '准备分析...');
     setProgress(10);
     document.getElementById('error-box').classList.remove('active');
     document.getElementById('results').classList.remove('active');
 
     try {
-        // 1. 解压
-        setLoading(true, '读取ZIP...');
-        setProgress(20);
-        const zip = await JSZip.loadAsync(selectedFile);
-
-        // 2. 读取所有文件
-        setLoading(true, '解析文件结构...');
-        setProgress(40);
-        zipFiles = {};
-        const entries = Object.keys(zip.files);
-        let count = 0;
-        for (const name of entries) {
-            const entry = zip.files[name];
-            if (!entry.dir) {
-                try {
-                    zipFiles[name] = await entry.async('string');
-                } catch(e) { zipFiles[name] = ''; }
+        // 1. 如果是ZIP，先解压
+        if (inputMode === 'zip' && selectedFile) {
+            setLoading(true, '解压ZIP...');
+            setProgress(20);
+            const zip = await JSZip.loadAsync(selectedFile);
+            setLoading(true, '读取文件...');
+            setProgress(35);
+            zipFiles = {};
+            const entries = Object.keys(zip.files);
+            let count = 0;
+            for (const name of entries) {
+                const entry = zip.files[name];
+                if (!entry.dir) {
+                    try { zipFiles[name] = await entry.async('string'); } catch(e) { zipFiles[name] = ''; }
+                }
+                count++;
+                if (count % 20 === 0) setProgress(35 + Math.floor(count / entries.length * 25));
             }
-            count++;
-            if (count % 20 === 0) setProgress(40 + Math.floor(count / entries.length * 30));
+        } else if (Object.keys(zipFiles).length === 0) {
+            throw new Error('请先选择文件、文件夹或粘贴代码');
         }
 
-        // 3. 检测平台
-        setLoading(true, '检测平台类型...');
-        setProgress(75);
+        // 2. 检测平台
+        setLoading(true, '检测平台...');
+        setProgress(65);
         let platform = selectedPlatform;
         if (platform === 'auto') platform = detectPlatform();
-        if (!platform) throw new Error('无法检测平台类型。请确认ZIP包含 manifest.json、AndroidManifest.xml 或 Info.plist');
+        if (!platform) throw new Error('无法检测平台。请手动选择平台或确认项目包含 manifest.json / AndroidManifest.xml / Info.plist');
 
-        // 4. 分析
-        setLoading(true, '深度分析中...');
-        setProgress(85);
+        // 3. 分析
+        setLoading(true, '深度分析...');
+        setProgress(80);
         const analysis = analyzeProject_(platform);
 
-        // 5. 生成文档
+        // 4. 生成文档
         setLoading(true, '生成文档...');
-        setProgress(95);
+        setProgress(90);
         const markdown = generateMarkdown(platform, analysis);
         const htmlDoc = generateHTML(platform, analysis);
 
         currentResult = { platform, analysis, markdown, htmlDoc };
 
-        // 6. 显示
         setProgress(100);
         setLoading(false);
         showResult(currentResult);
