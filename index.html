@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI DocGen - 智能文档生成器</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .container { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem; }
+        .badge { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: var(--primary); color: white; margin-bottom: 1rem; }
+        h1 { font-size: 2.5rem; line-height: 1.2; margin-bottom: 1rem; background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; color: transparent; }
+        .subtitle { font-size: 1.1rem; color: var(--muted); margin-bottom: 2rem; }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 2rem 0; }
+        .feature { background: var(--card); border-radius: 12px; padding: 1.5rem; border: 1px solid #334155; }
+        .feature h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+        .feature p { font-size: 0.9rem; color: var(--muted); }
+        .feature .icon { font-size: 2rem; margin-bottom: 0.75rem; }
+        .install { background: var(--card); border-radius: 12px; padding: 1.5rem; margin: 2rem 0; border: 1px solid #334155; }
+        .install h2 { font-size: 1.2rem; margin-bottom: 1rem; }
+        code { background: #0f172a; padding: 0.8rem 1rem; border-radius: 8px; display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; overflow-x: auto; color: #a5f3fc; }
+        .platforms { display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap; }
+        .platform { padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+        .chrome { background: #4285f420; color: #4285f4; border: 1px solid #4285f440; }
+        .android { background: #3ddc8420; color: #3ddc84; border: 1px solid #3ddc8440; }
+        .ios { background: #007aff20; color: #007aff; border: 1px solid #007aff40; }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #334155; color: var(--muted); font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <span class="badge">v0.1.0</span>
+    <h1>AI DocGen</h1>
+    <p class="subtitle">智能文档生成器 — 自动分析代码并生成专业文档</p>
+
+    <div class="platforms">
+        <span class="platform chrome">🔌 Chrome 扩展</span>
+        <span class="platform android">📱 Android 无障碍</span>
+        <span class="platform ios">🍎 iOS 应用</span>
+    </div>
+
+    <div class="features">
+        <div class="feature">
+            <div class="icon">🔍</div>
+            <h3>智能分析</h3>
+            <p>自动识别项目类型，深度解析 manifest、Info.plist、AndroidManifest.xml 等配置文件</p>
+        </div>
+        <div class="feature">
+            <div class="icon">📝</div>
+            <h3>多格式输出</h3>
+            <p>支持 Markdown 和 HTML 格式，生成美观的文档页面</p>
+        </div>
+        <div class="feature">
+            <div class="icon">🤖</div>
+            <h3>AI 增强</h3>
+            <p>集成 OpenAI/DeepSeek，智能优化文档质量和翻译</p>
+        </div>
+        <div class="feature">
+            <div class="icon">♿</div>
+            <h3>无障碍文档</h3>
+            <p>自动生成无障碍特性说明和平台合规文档</p>
+        </div>
+    </div>
+
+    <div class="install">
+        <h2>🚀 快速开始</h2>
+        <code>pip install ai-docgen<br><br># 分析项目<br>ai-docgen analyze ./my-project<br><br># 生成文档<br>ai-docgen generate ./my-project --format md<br><br># AI 增强<br>ai-docgen enhance ./docs/api.md</code>
+    </div>
+
+    <div class="install">
+        <h2>📦 安装</h2>
+        <code>pip install ai-docgen<br><br># 或从源码安装<br>git clone https://github.com/zizegak916-glitch/ai-docgen.git<br>cd ai-docgen<br>pip install -e .</code>
+    </div>
+
+    <div class="footer">
+        <p>MIT License · <a href="https://github.com/zizegak916-glitch/ai-docgen">GitHub</a> · <a href="https://pypi.org/project/ai-docgen/">PyPI</a></p>
+    </div>
+</div>
+</body>
+</html>
