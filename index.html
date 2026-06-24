@@ -1,1097 +1,725 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI DocGen - 智能文档生成器</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#6366f1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-hover: #818cf8;
-            --bg: #0f172a;
-            --bg2: #1e293b;
-            --card: #1e293b;
-            --border: #334155;
-            --text: #e2e8f0;
-            --muted: #94a3b8;
-            --success: #22c55e;
-            --error: #ef4444;
-            --radius: 12px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg); color: var(--text); min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-            border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 1.5rem; text-align: center;
-        }
-        .badge { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: var(--primary); color: white; margin-bottom: 0.75rem; }
-        h1 {
-            font-size: 2.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-            -webkit-background-clip: text; color: transparent;
-        }
-        .subtitle { font-size: 1rem; color: var(--muted); max-width: 500px; margin: 0 auto 1.5rem; }
-        .platforms { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
-        .platform-tag { padding: 0.4rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; }
-        .p-chrome { background: #4285f420; color: #60a5fa; border: 1px solid #4285f440; }
-        .p-android { background: #3ddc8420; color: #4ade80; border: 1px solid #3ddc8440; }
-        .p-ios { background: #007aff20; color: #60a5fa; border: 1px solid #007aff40; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI DocGen - 智能文档生成器</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#6366f1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--p:#6366f1;--ph:#818cf8;--bg:#0f172a;--bg2:#1e293b;--bd:#334155;--tx:#e2e8f0;--mt:#94a3b8;--ok:#22c55e;--er:#ef4444;--r:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;-webkit-tap-highlight-color:transparent}
 
-        .container { max-width: 800px; margin: 0 auto; padding: 1.5rem; }
-        .card {
-            background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-            padding: 1.5rem; margin-bottom: 1rem;
-        }
-        .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+/* Header */
+.hd{background:linear-gradient(135deg,#0f172a,#1e1b4b,#0f172a);border-bottom:1px solid var(--bd);padding:1.5rem 1rem 1rem;text-align:center}
+.badge{display:inline-block;padding:.25rem .7rem;border-radius:20px;font-size:.7rem;font-weight:700;background:var(--p);color:#fff;margin-bottom:.5rem}
+h1{font-size:2rem;font-weight:800;background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);-webkit-background-clip:text;color:transparent;margin-bottom:.4rem}
+.sub{font-size:.9rem;color:var(--mt);margin-bottom:1rem}
+.plats{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.plat{padding:.35rem .8rem;border-radius:8px;font-size:.75rem;font-weight:600}
+.pc{background:#4285f420;color:#60a5fa;border:1px solid #4285f440}
+.pa{background:#3ddc8420;color:#4ade80;border:1px solid #3ddc8440}
+.pi{background:#007aff20;color:#60a5fa;border:1px solid #007aff40}
 
-        /* Upload */
-        .upload-zone {
-            border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem 1.5rem;
-            text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg2);
-        }
-        .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: #6366f110; }
-        .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-        .upload-text { font-size: 0.9rem; color: var(--muted); }
-        .upload-text strong { color: var(--text); }
-        .upload-hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
-        .file-input { display: none; }
+/* Container */
+.ct{max-width:720px;margin:0 auto;padding:1rem}
+.cd{background:var(--bg2);border-radius:var(--r);border:1px solid var(--bd);padding:1.2rem;margin-bottom:.8rem}
+.ct-t{font-size:.95rem;font-weight:600;margin-bottom:.8rem;display:flex;align-items:center;gap:.4rem}
 
-        /* Platform select */
-        .platform-select { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .platform-btn {
-            padding: 0.45rem 1rem; border-radius: 8px; border: 1px solid var(--border);
-            background: transparent; color: var(--muted); font-size: 0.8rem; cursor: pointer;
-            transition: all 0.2s; font-weight: 500;
-        }
-        .platform-btn:hover { border-color: var(--primary); color: var(--text); }
-        .platform-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+/* Upload zone */
+.uz{border:2px dashed var(--bd);border-radius:var(--r);padding:1.5rem 1rem;text-align:center;background:var(--bg);transition:.2s}
+.uz.over{border-color:var(--p);background:#6366f110}
+.uz-ic{font-size:2rem;margin-bottom:.5rem}
+.uz-tx{font-size:.85rem;color:var(--mt)}
 
-        /* Buttons */
-        .btn {
-            padding: 0.65rem 1.3rem; border-radius: 8px; border: none; font-size: 0.85rem;
-            font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex;
-            align-items: center; gap: 0.5rem;
-        }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-        .btn-outline:hover { border-color: var(--primary); color: var(--text); }
-        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+/* Upload methods */
+.um{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin-top:.6rem}
+.um-btn{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.7rem .3rem;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);cursor:pointer;transition:.15s;font-size:.7rem;-webkit-tap-highlight-color:transparent}
+.um-btn:active{transform:scale(.95);background:var(--p)}
+.um-ic{font-size:1.3rem}
+.um-lb{font-weight:500}
 
-        /* File info */
-        .file-info { display: none; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg); border-radius: 8px; margin-bottom: 1rem; }
-        .file-info.active { display: flex; }
-        .file-icon { font-size: 1.8rem; }
-        .file-name { font-weight: 600; font-size: 0.85rem; }
-        .file-size { font-size: 0.75rem; color: var(--muted); }
-        .file-remove { margin-left: auto; cursor: pointer; color: var(--error); font-size: 1.1rem; padding: 0.25rem; }
+/* Platform select */
+.ps{display:flex;gap:.3rem;margin-bottom:.7rem;flex-wrap:wrap}
+.pb{padding:.4rem .9rem;border-radius:8px;border:1px solid var(--bd);background:0;color:var(--mt);font-size:.75rem;cursor:pointer;transition:.15s;font-weight:500}
+.pb.on{background:var(--p);color:#fff;border-color:var(--p)}
 
-        /* Loading */
-        .loading { display: none; text-align: center; padding: 2rem; }
-        .loading.active { display: block; }
-        .spinner {
-            width: 36px; height: 36px; border: 3px solid var(--border);
-            border-top-color: var(--primary); border-radius: 50%;
-            animation: spin 0.8s linear infinite; margin: 0 auto 0.75rem;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: var(--muted); font-size: 0.85rem; }
-        .loading-detail { color: var(--primary); font-size: 0.8rem; margin-top: 0.5rem; font-family: monospace; }
+/* Buttons */
+.btn{padding:.6rem 1.2rem;border-radius:8px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:.4rem}
+.bp{background:var(--p);color:#fff}.bp:hover{background:var(--ph)}.bp:disabled{opacity:.4;cursor:not-allowed}
+.bo{background:0;color:var(--mt);border:1px solid var(--bd)}.bo:hover{border-color:var(--p);color:var(--tx)}
+.bg{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.8rem}
 
-        /* Progress */
-        .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 0.75rem 0; }
-        .progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; width: 0%; }
+/* File info */
+.fi{display:none;align-items:center;gap:.8rem;padding:.8rem;background:var(--bg);border-radius:8px;margin-bottom:.7rem}
+.fi.on{display:flex}
+.fi-ic{font-size:1.5rem}
+.fi-nm{font-weight:600;font-size:.85rem}
+.fi-sz{font-size:.7rem;color:var(--mt)}
+.fi-rm{margin-left:auto;cursor:pointer;color:var(--er);font-size:1rem;padding:.2rem}
 
-        /* Results */
-        .results { display: none; }
-        .results.active { display: block; }
-        .result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-        .doc-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
-        .doc-tab {
-            padding: 0.5rem 1rem; border: none; background: transparent; color: var(--muted);
-            font-size: 0.8rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
-        }
-        .doc-tab:hover { color: var(--text); }
-        .doc-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .doc-content {
-            max-height: 500px; overflow-y: auto; padding: 1rem; background: var(--bg);
-            border-radius: 8px; font-size: 0.8rem; line-height: 1.6;
-        }
-        .doc-content::-webkit-scrollbar { width: 5px; }
-        .doc-content::-webkit-scrollbar-track { background: var(--bg); }
-        .doc-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* Progress */
+.pb-bar{height:3px;background:var(--bd);border-radius:2px;overflow:hidden;margin:.5rem 0;display:none}
+.pb-fl{height:100%;background:var(--p);border-radius:2px;transition:width .3s;width:0}
 
-        /* Markdown render */
-        .md-content h1 { font-size: 1.3rem; margin: 0.8rem 0 0.4rem; color: var(--primary); }
-        .md-content h2 { font-size: 1.1rem; margin: 0.8rem 0 0.4rem; color: #a78bfa; }
-        .md-content h3 { font-size: 0.95rem; margin: 0.6rem 0 0.3rem; color: #c084fc; }
-        .md-content p { margin: 0.3rem 0; }
-        .md-content ul, .md-content ol { margin: 0.3rem 0 0.3rem 1.2rem; }
-        .md-content li { margin: 0.15rem 0; }
-        .md-content code { background: #334155; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.75rem; }
-        .md-content pre { background: #0f172a; padding: 0.8rem; border-radius: 8px; overflow-x: auto; margin: 0.5rem 0; }
-        .md-content pre code { background: transparent; padding: 0; color: #a5f3fc; }
-        .md-content table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
-        .md-content th, .md-content td { padding: 0.4rem 0.6rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
-        .md-content th { background: var(--bg2); color: var(--primary); font-weight: 600; }
-        .md-content hr { border: none; border-top: 1px solid var(--border); margin: 0.8rem 0; }
+/* Loading */
+.ld{display:none;text-align:center;padding:1.5rem}
+.ld.on{display:block}
+.sp{width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--p);border-radius:50%;animation:sp .7s linear infinite;margin:0 auto .5rem}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ld-tx{color:var(--mt);font-size:.8rem}
+.ld-dt{color:var(--p);font-size:.75rem;margin-top:.3rem;font-family:monospace}
 
-        /* Analysis tree */
-        .analysis-summary { background: var(--bg); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
-        .summary-row { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.8rem; border-bottom: 1px solid #ffffff08; }
-        .summary-key { color: var(--primary); font-weight: 500; }
-        .summary-val { color: var(--text); }
-        .badge-yes { background: #22c55e20; color: #4ade80; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; }
-        .badge-no { background: #ef444420; color: #f87171; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; }
+/* Error */
+.er{display:none;padding:.8rem;background:#ef444415;border:1px solid #ef444440;border-radius:8px;color:#f87171;margin-top:.7rem;font-size:.8rem}
+.er.on{display:block}
 
-        /* Error */
-        .error-box { display: none; padding: 1rem; background: #ef444415; border: 1px solid #ef444440; border-radius: 8px; color: #f87171; margin-top: 1rem; font-size: 0.85rem; }
-        .error-box.active { display: block; }
+/* Results */
+.rs{display:none}.rs.on{display:block}
+.su{background:var(--bg);border-radius:8px;padding:.8rem;margin-bottom:.7rem}
+.sr{display:flex;justify-content:space-between;padding:.25rem 0;font-size:.75rem;border-bottom:1px solid #ffffff08}
+.sk{color:var(--p);font-weight:500}.sv{color:var(--tx)}
+.by{background:#22c55e20;color:#4ade80;padding:.1rem .4rem;border-radius:4px;font-size:.7rem}
+.bn{background:#ef444420;color:#f87171;padding:.1rem .4rem;border-radius:4px;font-size:.7rem}
 
-        /* Features */
-        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-top: 1.5rem; }
-        .feature { padding: 1rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); text-align: center; }
-        .feature .icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
-        .feature h3 { font-size: 0.9rem; margin-bottom: 0.2rem; }
-        .feature p { font-size: 0.75rem; color: var(--muted); }
+/* Doc tabs */
+.dt{display:flex;border-bottom:1px solid var(--bd);margin-bottom:.7rem}
+.dtb{padding:.4rem .8rem;border:none;background:0;color:var(--mt);font-size:.75rem;cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
+.dtb.on{color:var(--p);border-bottom-color:var(--p)}
+.dc{max-height:400px;overflow-y:auto;padding:.8rem;background:var(--bg);border-radius:8px;font-size:.75rem;line-height:1.6}
+.dc::-webkit-scrollbar{width:4px}
+.dc::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
 
-        .footer { margin-top: 2rem; padding: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 0.8rem; }
-        .footer a { color: var(--primary); text-decoration: none; }
+/* Markdown */
+.mc h1{font-size:1.2rem;margin:.6rem 0 .3rem;color:var(--p)}
+.mc h2{font-size:1rem;margin:.6rem 0 .3rem;color:#a78bfa}
+.mc h3{font-size:.9rem;margin:.5rem 0 .25rem;color:#c084fc}
+.mc p{margin:.25rem 0}
+.mc ul,.mc ol{margin:.25rem 0 .25rem 1rem}
+.mc li{margin:.15rem 0}
+.mc code{background:#334155;padding:.1rem .3rem;border-radius:3px;font-size:.7rem}
+.mc pre{background:#0a0f1a;padding:.6rem;border-radius:6px;overflow-x:auto;margin:.4rem 0}
+.mc pre code{background:0;color:#a5f3fc}
+.mc table{width:100%;border-collapse:collapse;margin:.4rem 0}
+.mc th,.mc td{padding:.3rem .5rem;text-align:left;border-bottom:1px solid var(--bd);font-size:.7rem}
+.mc th{background:var(--bg2);color:var(--p);font-weight:600}
+.mc hr{border:none;border-top:1px solid var(--bd);margin:.6rem 0}
 
-        .toast {
-            position: fixed; bottom: 2rem; right: 1rem; left: 1rem;
-            padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500;
-            transform: translateY(100px); opacity: 0; transition: all 0.3s;
-            z-index: 1000; text-align: center;
-        }
-        .toast.show { transform: translateY(0); opacity: 1; }
-        .toast-success { background: var(--success); color: white; }
-        .toast-error { background: var(--error); color: white; }
+/* Features */
+.ft{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-top:1rem}
+.fi2{padding:.8rem;background:var(--bg2);border-radius:var(--r);border:1px solid var(--bd);text-align:center}
+.fi2 .ic{font-size:1.5rem;margin-bottom:.3rem}
+.fi2 h3{font-size:.8rem;margin-bottom:.15rem}
+.fi2 p{font-size:.7rem;color:var(--mt)}
+.ft2{margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--bd);text-align:center;color:var(--mt);font-size:.75rem}
+.ft2 a{color:var(--p);text-decoration:none}
 
-        /* Upload methods */
-        .upload-methods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
-        .upload-method {
-            display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
-            padding: 0.8rem 0.5rem; border-radius: 10px; border: 1px solid var(--border);
-            background: var(--bg2); color: var(--text); cursor: pointer;
-            transition: all 0.2s; font-size: 0.75rem;
-        }
-        .upload-method:hover { border-color: var(--primary); background: #6366f110; transform: translateY(-2px); }
-        .upload-method:active { transform: translateY(0) scale(0.97); }
-        .method-icon { font-size: 1.5rem; }
-        .method-label { font-weight: 500; }
+/* Toast */
+.ts{position:fixed;bottom:1.5rem;left:1rem;right:1rem;padding:.6rem 1rem;border-radius:8px;font-size:.8rem;font-weight:500;transform:translateY(80px);opacity:0;transition:.25s;z-index:999;text-align:center}
+.ts.on{transform:translateY(0);opacity:1}
+.ts-ok{background:var(--ok);color:#fff}
+.ts-er{background:var(--er);color:#fff}
 
-        /* Paste modal */
-        .modal-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-            z-index: 1000; align-items: center; justify-content: center; padding: 1rem;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: var(--card); border-radius: 16px; border: 1px solid var(--border);
-            padding: 1.5rem; width: 100%; max-width: 500px; max-height: 80vh;
-        }
-        .modal h3 { font-size: 1rem; margin-bottom: 0.75rem; }
-        .modal textarea {
-            width: 100%; height: 200px; background: var(--bg); border: 1px solid var(--border);
-            border-radius: 8px; color: var(--text); padding: 0.75rem; font-family: monospace;
-            font-size: 0.8rem; resize: vertical;
-        }
-        .modal textarea:focus { outline: none; border-color: var(--primary); }
-        .modal-inputs { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
-        .modal-inputs input {
-            flex: 1; min-width: 120px; padding: 0.5rem 0.75rem; border-radius: 8px;
-            border: 1px solid var(--border); background: var(--bg); color: var(--text);
-            font-size: 0.8rem;
-        }
-        .modal-inputs input:focus { outline: none; border-color: var(--primary); }
-        .modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
+/* Paste modal */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:1rem}
+.mo.on{display:flex}
+.mo-c{background:var(--bg2);border-radius:16px;border:1px solid var(--bd);padding:1.2rem;width:100%;max-width:420px}
+.mo-c h3{font-size:.95rem;margin-bottom:.6rem}
+.mo-c textarea{width:100%;height:150px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:.6rem;font-family:monospace;font-size:.75rem;resize:vertical}
+.mo-c textarea:focus{outline:none;border-color:var(--p)}
+.mo-in{display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap}
+.mo-in input,.mo-in select{flex:1;min-width:100px;padding:.4rem .6rem;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:.75rem}
+.mo-ac{display:flex;gap:.4rem;margin-top:.8rem;justify-content:flex-end}
 
-        @media (max-width: 600px) {
-            .header { padding: 1.5rem 1rem 1rem; }
-            h1 { font-size: 1.8rem; }
-            .container { padding: 1rem; }
-            .card { padding: 1.2rem; }
-            .upload-methods { grid-template-columns: repeat(2, 1fr); }
-        }
-    </style>
+/* Hidden */
+.hid{display:none}
+</style>
 </head>
 <body>
 
-<div class="header">
-    <span class="badge">v1.0 · 纯前端</span>
-    <h1>AI DocGen</h1>
-    <p class="subtitle">上传项目代码，浏览器内自动分析并生成专业文档 — 无需服务器</p>
-    <div class="platforms">
-        <span class="platform-tag p-chrome">🔌 Chrome 扩展</span>
-        <span class="platform-tag p-android">📱 Android 无障碍</span>
-        <span class="platform-tag p-ios">🍎 iOS 应用</span>
-    </div>
+<div class="hd">
+  <span class="badge">v1.0 · 纯前端</span>
+  <h1>AI DocGen</h1>
+  <p class="sub">上传代码，浏览器内分析生成文档</p>
+  <div class="plats">
+    <span class="plat pc">🔌 Chrome</span>
+    <span class="plat pa">📱 Android</span>
+    <span class="plat pi">🍎 iOS</span>
+  </div>
 </div>
 
-<div class="container">
-    <!-- UPLOAD -->
-    <div class="card" id="upload-section">
-        <div class="card-title">📂 上传项目</div>
+<div class="ct">
+  <div class="cd">
+    <div class="ct-t">📂 选择项目</div>
 
-        <div class="platform-select">
-            <button class="platform-btn active" data-platform="auto" onclick="selectPlatform(this)">🔍 自动检测</button>
-            <button class="platform-btn" data-platform="chrome" onclick="selectPlatform(this)">🔌 Chrome</button>
-            <button class="platform-btn" data-platform="android" onclick="selectPlatform(this)">📱 Android</button>
-            <button class="platform-btn" data-platform="ios" onclick="selectPlatform(this)">🍎 iOS</button>
-        </div>
-
-        <div class="file-info" id="file-info">
-            <span class="file-icon" id="file-icon">📦</span>
-            <div>
-                <div class="file-name" id="file-name"></div>
-                <div class="file-size" id="file-size"></div>
-            </div>
-            <span class="file-remove" onclick="clearFile()">✕</span>
-        </div>
-
-        <div class="upload-zone" id="upload-zone">
-            <div class="upload-icon">📁</div>
-            <div class="upload-text">拖拽文件/文件夹到此处</div>
-            <div class="upload-hint">或选择上传方式：</div>
-        </div>
-
-        <!-- 三种上传入口 -->
-        <div class="upload-methods">
-            <button class="upload-method" onclick="document.getElementById('file-input-zip').click()">
-                <span class="method-icon">📦</span>
-                <span class="method-label">ZIP</span>
-            </button>
-            <button class="upload-method" onclick="document.getElementById('file-input-folder').click()">
-                <span class="method-icon">📂</span>
-                <span class="method-label">文件夹</span>
-            </button>
-            <button class="upload-method" onclick="document.getElementById('file-input-multi').click()">
-                <span class="method-icon">📄</span>
-                <span class="method-label">多文件</span>
-            </button>
-            <button class="upload-method" onclick="showPasteModal()">
-                <span class="method-icon">📋</span>
-                <span class="method-label">粘贴代码</span>
-            </button>
-        </div>
-
-        <input type="file" class="file-input" id="file-input-zip" accept=".zip" onchange="handleFileSelect(event,'zip')">
-        <input type="file" class="file-input" id="file-input-folder" webkitdirectory onchange="handleFolderSelect(event)">
-        <input type="file" class="file-input" id="file-input-multi" multiple onchange="handleMultiSelect(event)">
-
-        <div class="progress-bar" id="progress-bar" style="display:none"><div class="progress-fill" id="progress-fill"></div></div>
-
-        <div class="btn-group">
-            <button class="btn btn-primary" id="analyze-btn" onclick="analyzeProject()" disabled>🚀 开始分析</button>
-            <button class="btn btn-outline" onclick="loadDemo()">📋 示例</button>
-        </div>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <div class="loading-text">分析中...</div>
-            <div class="loading-detail" id="loading-detail"></div>
-        </div>
-
-        <div class="error-box" id="error-box"></div>
+    <div class="ps" id="plat-sel">
+      <button class="pb on" data-p="auto" onclick="selPlat(this)">🔍 自动</button>
+      <button class="pb" data-p="chrome" onclick="selPlat(this)">Chrome</button>
+      <button class="pb" data-p="android" onclick="selPlat(this)">Android</button>
+      <button class="pb" data-p="ios" onclick="selPlat(this)">iOS</button>
     </div>
 
-    <!-- RESULTS -->
-    <div class="results" id="results">
-        <div class="card">
-            <div class="card-title">📊 分析摘要</div>
-            <div class="analysis-summary" id="analysis-summary"></div>
-        </div>
-        <div class="card">
-            <div class="result-header">
-                <div class="card-title" style="margin-bottom:0">📝 生成文档</div>
-                <div class="btn-group" style="margin-top:0">
-                    <button class="btn btn-outline" onclick="downloadDoc('md')">📥 MD</button>
-                    <button class="btn btn-outline" onclick="downloadDoc('html')">📥 HTML</button>
-                </div>
-            </div>
-            <div class="doc-tabs">
-                <button class="doc-tab active" onclick="switchTab('markdown',this)">Markdown</button>
-                <button class="doc-tab" onclick="switchTab('preview',this)">HTML 预览</button>
-            </div>
-            <div class="doc-content md-content" id="doc-markdown"></div>
-            <div class="doc-content" id="doc-preview" style="display:none"></div>
-        </div>
+    <div class="fi" id="fi">
+      <span class="fi-ic" id="fi-ic">📦</span>
+      <div><div class="fi-nm" id="fi-nm"></div><div class="fi-sz" id="fi-sz"></div></div>
+      <span class="fi-rm" onclick="clearAll()">✕</span>
     </div>
 
-    <div class="features">
-        <div class="feature"><div class="icon">🔍</div><h3>智能分析</h3><p>自动识别项目类型</p></div>
-        <div class="feature"><div class="icon">📝</div><h3>多格式输出</h3><p>Markdown + HTML</p></div>
-        <div class="feature"><div class="icon">🔒</div><h3>纯前端</h3><p>文件不离开浏览器</p></div>
-        <div class="feature"><div class="icon">🌐</div><h3>离线可用</h3><p>PWA可安装</p></div>
+    <div class="uz" id="uz">
+      <div class="uz-ic">📁</div>
+      <div class="uz-tx">拖拽文件或文件夹到这里</div>
     </div>
 
-    <div class="footer">
-        <p>MIT License · <a href="https://github.com/zizegak916-glitch/ai-docgen">GitHub</a></p>
+    <div class="um" id="um">
+      <button class="um-btn" onclick="$('#inp-zip').click()"><span class="um-ic">📦</span><span class="um-lb">ZIP</span></button>
+      <button class="um-btn" onclick="$('#inp-dir').click()"><span class="um-ic">📂</span><span class="um-lb">文件夹</span></button>
+      <button class="um-btn" onclick="$('#inp-multi').click()"><span class="um-ic">📄</span><span class="um-lb">多文件</span></button>
+      <button class="um-btn" onclick="openPaste()"><span class="um-ic">📋</span><span class="um-lb">粘贴</span></button>
     </div>
+
+    <input type="file" class="hid" id="inp-zip" accept=".zip">
+    <input type="file" class="hid" id="inp-dir" webkitdirectory>
+    <input type="file" class="hid" id="inp-multi" multiple>
+
+    <div class="pb-bar" id="pbar"><div class="pb-fl" id="pfl"></div></div>
+
+    <div class="bg">
+      <button class="btn bp" id="btn-go" disabled onclick="doAnalyze()">🚀 开始分析</button>
+      <button class="btn bo" onclick="loadDemo()">📋 示例</button>
+    </div>
+
+    <div class="ld" id="ld"><div class="sp"></div><div class="ld-tx" id="ld-t"></div><div class="ld-dt" id="ld-d"></div></div>
+    <div class="er" id="er"></div>
+  </div>
+
+  <div class="rs" id="rs">
+    <div class="cd">
+      <div class="ct-t">📊 分析结果</div>
+      <div class="su" id="su"></div>
+    </div>
+    <div class="cd">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+        <div class="ct-t" style="margin:0">📝 文档</div>
+        <div style="display:flex;gap:.3rem">
+          <button class="btn bo" style="padding:.4rem .8rem;font-size:.75rem" onclick="dlDoc('md')">📥 MD</button>
+          <button class="btn bo" style="padding:.4rem .8rem;font-size:.75rem" onclick="dlDoc('html')">📥 HTML</button>
+        </div>
+      </div>
+      <div class="dt">
+        <button class="dtb on" onclick="swTab(0,this)">Markdown</button>
+        <button class="dtb" onclick="swTab(1,this)">HTML</button>
+      </div>
+      <div class="dc mc" id="d-md"></div>
+      <div class="dc" id="d-html" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="ft">
+    <div class="fi2"><div class="ic">🔍</div><h3>智能分析</h3><p>自动识别项目类型</p></div>
+    <div class="fi2"><div class="ic">📝</div><h3>多格式</h3><p>Markdown + HTML</p></div>
+    <div class="fi2"><div class="ic">🔒</div><h3>纯前端</h3><p>文件不离开浏览器</p></div>
+    <div class="fi2"><div class="ic">📦</div><h3>多种输入</h3><p>ZIP/文件夹/多文件/粘贴</p></div>
+  </div>
+  <div class="ft2">MIT · <a href="https://github.com/zizegak916-glitch/ai-docgen">GitHub</a></div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="ts" id="ts"></div>
 
-<!-- 粘贴代码弹窗 -->
-<div class="modal-overlay" id="paste-modal">
-    <div class="modal">
-        <h3>📋 粘贴代码</h3>
-        <textarea id="paste-code" placeholder="粘贴你的代码到这里..."></textarea>
-        <div class="modal-inputs">
-            <input type="text" id="paste-filename" placeholder="文件名 (如 main.js)">
-            <select id="paste-platform" style="padding:0.5rem 0.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.8rem;">
-                <option value="auto">自动检测</option>
-                <option value="chrome">Chrome 扩展</option>
-                <option value="android">Android</option>
-                <option value="ios">iOS</option>
-            </select>
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-outline" onclick="closePasteModal()">取消</button>
-            <button class="btn btn-primary" onclick="submitPaste()">分析</button>
-        </div>
+<!-- Paste Modal -->
+<div class="mo" id="pm">
+  <div class="mo-c">
+    <h3>📋 粘贴代码</h3>
+    <textarea id="pm-code" placeholder="粘贴代码..."></textarea>
+    <div class="mo-in">
+      <input id="pm-name" placeholder="文件名 (main.js)">
+      <select id="pm-plat"><option value="auto">自动</option><option value="chrome">Chrome</option><option value="android">Android</option><option value="ios">iOS</option></select>
     </div>
+    <div class="mo-ac">
+      <button class="btn bo" onclick="closePaste()">取消</button>
+      <button class="btn bp" onclick="submitPaste()">分析</button>
+    </div>
+  </div>
 </div>
 
 <script>
-// ============================================================
-// STATE
-// ============================================================
-let selectedFile = null;
-let selectedPlatform = 'auto';
-let currentResult = null;
-let zipFiles = {}; // {path: content}
-let inputMode = 'zip'; // zip | folder | multi | paste
+const $=id=>document.getElementById(id);
+let S={mode:'zip',file:null,files:{},plat:'auto',result:null};
 
-// ============================================================
-// UI HELPERS
-// ============================================================
-function selectPlatform(btn) {
-    document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedPlatform = btn.dataset.platform;
-}
+// --- Event Bindings ---
+$('inp-zip').onchange=e=>{if(e.target.files[0])loadZip(e.target.files[0])};
+$('inp-dir').onchange=e=>{loadDir(e.target.files)};
+$('inp-multi').onchange=e=>{loadMulti(e.target.files)};
 
-const uploadZone = document.getElementById('upload-zone');
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop', e => {
-    e.preventDefault(); uploadZone.classList.remove('dragover');
-    const items = e.dataTransfer.items;
-    if (items) {
-        // 检查是否有文件夹
-        const entries = [];
-        for (let i = 0; i < items.length; i++) {
-            const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
-            if (entry) entries.push(entry);
-        }
-        if (entries.length) {
-            handleDroppedEntries(entries);
-            return;
-        }
+// Drag & drop
+const uz=$('uz');
+uz.ondragover=e=>{e.preventDefault();uz.classList.add('over')};
+uz.ondragleave=()=>uz.classList.remove('over');
+uz.ondrop=e=>{
+  e.preventDefault();uz.classList.remove('over');
+  // Try folder entries
+  const items=e.dataTransfer.items;
+  if(items&&items.length){
+    const entries=[];
+    for(let i=0;i<items.length;i++){
+      const en=items[i].webkitGetAsEntry?items[i].webkitGetAsEntry():null;
+      if(en)entries.push(en);
     }
-    // 普通文件
-    const files = e.dataTransfer.files;
-    if (files.length === 1 && files[0].name.endsWith('.zip')) {
-        setFile(files[0], 'zip');
-    } else if (files.length > 0) {
-        handleMultipleFiles(files);
-    } else {
-        showToast('请选择文件', 'error');
-    }
-});
+    if(entries.length){loadEntries(entries);return}
+  }
+  // Fallback: files
+  const fl=e.dataTransfer.files;
+  if(fl.length===1&&fl[0].name.endsWith('.zip')){loadZip(fl[0])}
+  else if(fl.length>0){loadMulti(fl)}
+};
 
-async function handleDroppedEntries(entries) {
-    const files = {};
-    async function readEntry(entry, path) {
-        if (entry.isFile) {
-            return new Promise(resolve => {
-                entry.file(file => {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        files[path + file.name] = reader.result;
-                        resolve();
-                    };
-                    reader.readAsText(file);
-                });
-            });
-        } else if (entry.isDirectory) {
-            const reader = entry.createReader();
-            return new Promise(resolve => {
-                const allEntries = [];
-                function readBatch() {
-                    reader.readEntries(async batch => {
-                        if (batch.length === 0) {
-                            for (const e of allEntries) {
-                                await readEntry(e, path + entry.name + '/');
-                            }
-                            resolve();
-                        } else {
-                            allEntries.push(...batch);
-                            readBatch();
-                        }
-                    });
-                }
-                readBatch();
-            });
-        }
-    }
-    for (const entry of entries) {
-        await readEntry(entry, '');
-    }
-    if (Object.keys(files).length > 0) {
-        zipFiles = files;
-        inputMode = 'folder';
-        const name = entries.length === 1 ? entries[0].name : entries.length + '个项目';
-        setFileReady(name, countSize(files), '📂');
-        showToast('✅ 已加载 ' + Object.keys(files).length + ' 个文件', 'success');
-    }
+// --- Platform Select ---
+function selPlat(b){
+  document.querySelectorAll('.pb').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  S.plat=b.dataset.p;
 }
 
-function countSize(obj) {
-    let total = 0;
-    for (const v of Object.values(obj)) total += (v || '').length;
-    return total;
+// --- Load Functions ---
+async function loadZip(file){
+  S.mode='zip';S.file=file;
+  showFI(file.name,fmtSz(file.size),'📦');
 }
 
-function handleFileSelect(e, type) {
-    const f = e.target.files[0];
-    if (f) setFile(f, type || 'zip');
+function loadDir(files){
+  if(!files.length)return;
+  S.mode='dir';S.files={};
+  let done=0;
+  const total=files.length;
+  for(const f of files){
+    const r=new FileReader();
+    r.onload=()=>{
+      S.files[f.webkitRelativePath||f.name]=r.result;
+      done++;
+      if(done===total){
+        const root=files[0].webkitRelativePath?files[0].webkitRelativePath.split('/')[0]:'项目';
+        showFI(root+' ('+total+'个文件)',total+' files','📂');
+      }
+    };
+    r.readAsText(f);
+  }
 }
 
-function handleFolderSelect(e) {
-    const files = e.target.files;
-    if (!files.length) return;
-    zipFiles = {};
-    inputMode = 'folder';
-    let loaded = 0;
-    const total = files.length;
-
-    for (const file of files) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            zipFiles[file.webkitRelativePath || file.name] = reader.result;
-            loaded++;
-            if (loaded === total) {
-                const rootFolder = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : '项目';
-                setFileReady(rootFolder, countSize(zipFiles), '📂');
-                showToast('✅ 已加载 ' + total + ' 个文件', 'success');
-            }
-        };
-        reader.readAsText(file);
-    }
+function loadMulti(files){
+  if(!files.length)return;
+  S.mode='multi';S.files={};
+  let done=0;
+  for(const f of files){
+    const r=new FileReader();
+    r.onload=()=>{
+      S.files[f.name]=r.result;
+      done++;
+      if(done===files.length)showFI(files.length+'个文件',done+' files','📄');
+    };
+    r.readAsText(f);
+  }
 }
 
-function handleMultiSelect(e) {
-    const files = e.target.files;
-    if (!files.length) return;
-    handleMultipleFiles(files);
-}
-
-function handleMultipleFiles(files) {
-    zipFiles = {};
-    inputMode = 'multi';
-    let loaded = 0;
-    const total = files.length;
-
-    for (const file of files) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            zipFiles[file.name] = reader.result;
-            loaded++;
-            if (loaded === total) {
-                setFileReady(total + '个文件', countSize(zipFiles), '📄');
-                showToast('✅ 已加载 ' + total + ' 个文件', 'success');
-            }
-        };
-        reader.readAsText(file);
-    }
-}
-
-function setFile(file, type) {
-    selectedFile = file;
-    inputMode = type || 'zip';
-    setFileReady(file.name, file.size, type === 'zip' ? '📦' : '📄');
-}
-
-function setFileReady(name, size, icon) {
-    document.getElementById('file-name').textContent = name;
-    document.getElementById('file-size').textContent = typeof size === 'number' ? formatSize(size) : size + ' 字符';
-    document.getElementById('file-icon').textContent = icon || '📦';
-    document.getElementById('file-info').classList.add('active');
-    uploadZone.style.display = 'none';
-    document.querySelector('.upload-methods').style.display = 'none';
-    document.getElementById('analyze-btn').disabled = false;
-}
-
-function clearFile() {
-    selectedFile = null; zipFiles = {};
-    document.getElementById('file-input-zip').value = '';
-    document.getElementById('file-input-folder').value = '';
-    document.getElementById('file-input-multi').value = '';
-    document.getElementById('file-info').classList.remove('active');
-    uploadZone.style.display = 'block';
-    document.querySelector('.upload-methods').style.display = 'grid';
-    document.getElementById('analyze-btn').disabled = true;
-}
-function formatSize(b) { return b < 1024 ? b+'B' : b < 1048576 ? (b/1024).toFixed(1)+'KB' : (b/1048576).toFixed(1)+'MB'; }
-function showToast(msg, type) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.className = `toast toast-${type} show`;
-    setTimeout(() => t.classList.remove('show'), 3000);
-}
-function setProgress(pct) {
-    const bar = document.getElementById('progress-bar');
-    const fill = document.getElementById('progress-fill');
-    bar.style.display = pct > 0 ? 'block' : 'none';
-    fill.style.width = pct + '%';
-}
-function setLoading(show, detail) {
-    document.getElementById('loading').classList.toggle('active', show);
-    if (detail) document.getElementById('loading-detail').textContent = detail;
-}
-
-// ============================================================
-// PASTE MODAL
-// ============================================================
-function showPasteModal() { document.getElementById('paste-modal').classList.add('active'); }
-function closePasteModal() { document.getElementById('paste-modal').classList.remove('active'); }
-function submitPaste() {
-    const code = document.getElementById('paste-code').value.trim();
-    const filename = document.getElementById('paste-filename').value.trim() || 'code.js';
-    const platform = document.getElementById('paste-platform').value;
-    if (!code) { showToast('请粘贴代码', 'error'); return; }
-
-    zipFiles = {};
-    zipFiles[filename] = code;
-    inputMode = 'paste';
-    if (platform !== 'auto') selectedPlatform = platform;
-
-    closePasteModal();
-    setFileReady(filename, code.length, '📋');
-    showToast('✅ 代码已粘贴', 'success');
-}
-
-// ============================================================
-// MAIN ANALYSIS
-// ============================================================
-async function analyzeProject() {
-    const btn = document.getElementById('analyze-btn');
-    btn.disabled = true;
-    setLoading(true, '准备分析...');
-    setProgress(10);
-    document.getElementById('error-box').classList.remove('active');
-    document.getElementById('results').classList.remove('active');
-
-    try {
-        // 1. 如果是ZIP，先解压
-        if (inputMode === 'zip' && selectedFile) {
-            setLoading(true, '解压ZIP...');
-            setProgress(20);
-            const zip = await JSZip.loadAsync(selectedFile);
-            setLoading(true, '读取文件...');
-            setProgress(35);
-            zipFiles = {};
-            const entries = Object.keys(zip.files);
-            let count = 0;
-            for (const name of entries) {
-                const entry = zip.files[name];
-                if (!entry.dir) {
-                    try { zipFiles[name] = await entry.async('string'); } catch(e) { zipFiles[name] = ''; }
-                }
-                count++;
-                if (count % 20 === 0) setProgress(35 + Math.floor(count / entries.length * 25));
-            }
-        } else if (Object.keys(zipFiles).length === 0) {
-            throw new Error('请先选择文件、文件夹或粘贴代码');
-        }
-
-        // 2. 检测平台
-        setLoading(true, '检测平台...');
-        setProgress(65);
-        let platform = selectedPlatform;
-        if (platform === 'auto') platform = detectPlatform();
-        if (!platform) throw new Error('无法检测平台。请手动选择平台或确认项目包含 manifest.json / AndroidManifest.xml / Info.plist');
-
-        // 3. 分析
-        setLoading(true, '深度分析...');
-        setProgress(80);
-        const analysis = analyzeProject_(platform);
-
-        // 4. 生成文档
-        setLoading(true, '生成文档...');
-        setProgress(90);
-        const markdown = generateMarkdown(platform, analysis);
-        const htmlDoc = generateHTML(platform, analysis);
-
-        currentResult = { platform, analysis, markdown, htmlDoc };
-
-        setProgress(100);
-        setLoading(false);
-        showResult(currentResult);
-        showToast('✅ 分析完成！', 'success');
-    } catch(err) {
-        setLoading(false); setProgress(0);
-        document.getElementById('error-box').textContent = '❌ ' + err.message;
-        document.getElementById('error-box').classList.add('active');
-        showToast(err.message, 'error');
-    } finally {
-        btn.disabled = false;
-    }
-}
-
-// ============================================================
-// PLATFORM DETECTION
-// ============================================================
-function detectPlatform() {
-    for (const name of Object.keys(zipFiles)) {
-        const base = name.split('/').pop();
-        if (base === 'manifest.json') return 'chrome';
-        if (base === 'AndroidManifest.xml') return 'android';
-        if (base === 'Info.plist' || base === 'Package.swift') return 'ios';
-    }
-    // Check nested (single root folder)
-    for (const name of Object.keys(zipFiles)) {
-        const parts = name.split('/');
-        if (parts.length >= 2) {
-            const base = parts[parts.length - 1];
-            if (base === 'manifest.json') return 'chrome';
-            if (base === 'AndroidManifest.xml') return 'android';
-            if (base === 'Info.plist') return 'ios';
-        }
-    }
-    return null;
-}
-
-function findFile(pattern) {
-    for (const name of Object.keys(zipFiles)) {
-        if (name.endsWith('/' + pattern) || name === pattern) return name;
-    }
-    return null;
-}
-
-function findFiles(ext) {
-    const results = [];
-    for (const name of Object.keys(zipFiles)) {
-        if (name.endsWith(ext) && !name.includes('__MACOSX')) results.push(name);
-    }
-    return results;
-}
-
-// ============================================================
-// ANALYZERS
-// ============================================================
-function analyzeProject_(platform) {
-    switch(platform) {
-        case 'chrome': return analyzeChrome();
-        case 'android': return analyzeAndroid();
-        case 'ios': return analyzeIOS();
-        default: return {};
-    }
-}
-
-function analyzeChrome() {
-    const result = { platform: 'chrome', manifest: {}, permissions: [], content_scripts: [], background: {}, popup: {} };
-    const mPath = findFile('manifest.json');
-    if (!mPath) return result;
-    try {
-        const manifest = JSON.parse(zipFiles[mPath]);
-        result.manifest = manifest;
-        result.permissions = manifest.permissions || [];
-        result.content_scripts = (manifest.content_scripts || []).map(cs => ({
-            matches: cs.matches || [], js: cs.js || [], css: cs.css || []
-        }));
-        if (manifest.background) {
-            result.background = {
-                type: manifest.background.service_worker ? 'service_worker' : 'scripts',
-                path: manifest.background.service_worker || (manifest.background.scripts || [])[0] || ''
-            };
-        }
-        if (manifest.action && manifest.action.default_popup) {
-            result.popup = { path: manifest.action.default_popup };
-        }
-    } catch(e) {}
-    return result;
-}
-
-function analyzeAndroid() {
-    const result = { platform: 'android', manifest: {}, permissions: [], services: [], overlay: { has: false, type: '', wm: false, files: [], snippets: [] }, buttons: [] };
-
-    const mPath = findFile('AndroidManifest.xml');
-    if (!mPath) return result;
-    const xml = zipFiles[mPath] || '';
-
-    // Parse permissions
-    const permRegex = /android:name="([^"]+)"/g;
-    let m;
-    while ((m = permRegex.exec(xml)) !== null) {
-        result.permissions.push(m[1]);
-    }
-
-    // Parse package
-    const pkgMatch = xml.match(/package="([^"]+)"/);
-    result.manifest.package = pkgMatch ? pkgMatch[1] : '';
-
-    // Parse services
-    const svcRegex = /<service[^>]*>/g;
-    while ((m = svcRegex.exec(xml)) !== null) {
-        const tag = m[0];
-        const nameMatch = tag.match(/android:name="([^"]+)"/);
-        result.services.push({ name: nameMatch ? nameMatch[1] : '' });
-    }
-
-    // Scan Java/Kotlin for overlay
-    const javaFiles = findFiles('.java').concat(findFiles('.kt'));
-    const overlayKW = ['WindowManager', 'TYPE_APPLICATION_OVERLAY', 'TYPE_SYSTEM_ALERT', 'SYSTEM_ALERT_WINDOW', 'addView', 'floating', 'overlay', 'bubble', 'float'];
-
-    for (const f of javaFiles) {
-        const content = zipFiles[f] || '';
-        if (content.includes('WindowManager')) { result.overlay.wm = true; result.overlay.has = true; }
-        if (content.includes('TYPE_APPLICATION_OVERLAY')) { result.overlay.type = 'APPLICATION_OVERLAY'; result.overlay.has = true; }
-        if (content.includes('TYPE_SYSTEM_ALERT')) { result.overlay.type = 'SYSTEM_ALERT'; result.overlay.has = true; }
-
-        for (const kw of overlayKW) {
-            if (content.includes(kw)) {
-                result.overlay.files.push(f);
-                // Extract snippet
-                const lines = content.split('\n');
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes(kw)) {
-                        const start = Math.max(0, i - 3);
-                        const end = Math.min(lines.length, i + 4);
-                        result.overlay.snippets.push({ file: f, keyword: kw, snippet: lines.slice(start, end).join('\n').substring(0, 300) });
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-
-        // Buttons
-        const btnRegex = /(?:Button|ImageButton|FloatingActionButton)\s*\([^)]*\)/g;
-        let bm;
-        while ((bm = btnRegex.exec(content)) !== null) {
-            result.buttons.push({ file: f, code: bm[0].substring(0, 80) });
-        }
-    }
-
-    return result;
-}
-
-function analyzeIOS() {
-    const result = { platform: 'ios', info_plist: {}, permissions: [], apis: [] };
-    const pPath = findFile('Info.plist');
-    if (!pPath) return result;
-    const plist = zipFiles[pPath] || '';
-    // Simple plist parsing
-    const keys = ['CFBundleIdentifier', 'CFBundleShortVersionString', 'CFBundleName', 'NSAccessibilityUsageDescription'];
-    for (const key of keys) {
-        const regex = new RegExp(`<key>${key}</key>\\s*<string>([^<]+)</string>`);
-        const match = plist.match(regex);
-        if (match) result.info_plist[key] = match[1];
-    }
-    // Check Swift/ObjC files for accessibility
-    const swiftFiles = findFiles('.swift').concat(findFiles('.m'));
-    const a11yKW = ['UIAccessibility', 'accessibilityLabel', 'accessibilityHint', 'isAccessibilityElement'];
-    for (const f of swiftFiles) {
-        const content = zipFiles[f] || '';
-        for (const kw of a11yKW) {
-            if (content.includes(kw)) result.apis.push({ api: kw, file: f });
-        }
-    }
-    return result;
-}
-
-// ============================================================
-// MARKDOWN GENERATOR
-// ============================================================
-function generateMarkdown(platform, a) {
-    const sections = [];
-    // Overview
-    sections.push(`# ${platform.title()} 项目文档\n\n## 项目概览\n`);
-    if (platform === 'chrome') {
-        const m = a.manifest;
-        sections.push(`- **名称**: ${m.name || 'N/A'}\n- **版本**: ${m.version || 'N/A'}\n- **描述**: ${m.description || 'N/A'}\n- **Manifest V**: ${m.manifest_version || 'N/A'}`);
-    } else if (platform === 'android') {
-        sections.push(`- **包名**: ${a.manifest.package || 'N/A'}\n- **权限数**: ${a.permissions.length}\n- **悬浮窗**: ${a.overlay.has ? a.overlay.type : '无'}`);
-    } else if (platform === 'ios') {
-        const p = a.info_plist;
-        sections.push(`- **Bundle ID**: ${p.CFBundleIdentifier || 'N/A'}\n- **版本**: ${p.CFBundleShortVersionString || 'N/A'}`);
-    }
-
-    // Setup
-    sections.push(`\n## 安装指南\n`);
-    if (platform === 'chrome') sections.push('1. 打开 `chrome://extensions/`\n2. 开启开发者模式\n3. 加载已解压的扩展程序\n4. 选择项目目录');
-    else if (platform === 'android') sections.push('1. Android Studio 打开项目\n2. 同步 Gradle\n3. 连接设备\n4. 设置 > 无障碍 启用服务\n5. 授予悬浮窗权限（如需要）');
-    else sections.push('1. Xcode 打开项目\n2. 安装依赖\n3. 连接设备\n4. 设置 > 辅助功能 启用');
-
-    // API
-    sections.push(`\n## API 参考\n`);
-    if (platform === 'chrome' && a.content_scripts.length) {
-        sections.push('### Content Scripts\n');
-        a.content_scripts.forEach((cs, i) => {
-            sections.push(`**脚本 ${i+1}**\n- 匹配: \`${cs.matches.join(', ')}\`\n- JS: \`${cs.js.join(', ')}\`\n`);
+async function loadEntries(entries){
+  S.mode='dir';S.files={};
+  async function read(en,path){
+    if(en.isFile){
+      return new Promise(res=>{
+        en.file(f=>{
+          const r=new FileReader();
+          r.onload=()=>{S.files[path+f.name]=r.result;res()};
+          r.readAsText(f);
         });
-    } else if (platform === 'android' && a.services.length) {
-        sections.push('### 服务\n');
-        a.services.forEach(s => sections.push(`- \`${s.name}\``));
-    }
-
-    // Permissions
-    sections.push(`\n## 权限说明\n`);
-    if (a.permissions.length) {
-        sections.push('| 权限 | 说明 |\n|------|------|\n');
-        const desc = { 'SYSTEM_ALERT_WINDOW': '显示悬浮窗', 'FOREGROUND_SERVICE': '前台服务', 'INTERNET': '网络访问', 'BIND_ACCESSIBILITY_SERVICE': '绑定无障碍服务', 'activeTab': '访问活动标签页', 'storage': '本地存储' };
-        a.permissions.forEach(p => sections.push(`| \`${p}\` | ${desc[p] || '系统权限'} |`));
-    } else sections.push('无特殊权限。');
-
-    // Overlay docs (Android)
-    if (platform === 'android' && a.overlay.has) {
-        sections.push(`\n## 悬浮窗文档\n`);
-        sections.push(`- **类型**: \`${a.overlay.type}\`\n- **WindowManager**: ${a.overlay.wm ? '是' : '否'}\n`);
-        if (a.overlay.files.length) {
-            sections.push('\n### 相关文件\n');
-            a.overlay.files.forEach(f => sections.push(`- \`${f}\``));
+      });
+    }else if(en.isDirectory){
+      const rd=en.createReader();
+      return new Promise(res=>{
+        const all=[];
+        function batch(){
+          rd.readEntries(async ch=>{
+            if(!ch.length){
+              for(const e of all)await read(e,path+en.name+'/');
+              res();
+            }else{all.push(...ch);batch()}
+          });
         }
-        if (a.overlay.snippets.length) {
-            sections.push('\n### 关键代码\n');
-            a.overlay.snippets.slice(0, 3).forEach(s => {
-                sections.push(`**${s.file}** (\`${s.keyword}\`)\n\`\`\`java\n${s.snippet}\n\`\`\`\n`);
-            });
-        }
-        if (a.buttons.length) {
-            sections.push('### 检测到的按钮\n');
-            sections.push('| 文件 | 代码 |\n|------|------|\n');
-            a.buttons.slice(0, 8).forEach(b => sections.push(`| \`${b.file}\` | \`${b.code}\` |`));
-        }
+        batch();
+      });
     }
-
-    // Platform guide
-    sections.push(`\n## 平台指南\n`);
-    if (platform === 'chrome') sections.push('- 遵循最佳实践\n- 最小化权限\n- 支持 Manifest V3');
-    else if (platform === 'android') {
-        sections.push('- 正确实现生命周期\n- 及时响应事件\n- 提供无障碍描述');
-        if (a.overlay.has) sections.push('\n### 悬浮窗最佳实践\n- 使用 `TYPE_APPLICATION_OVERLAY`\n- 处理 `canDrawOverlays` 权限\n- 适配不同屏幕\n- 支持拖拽和双击关闭');
-    } else sections.push('- 设置 accessibilityLabel\n- 支持 VoiceOver');
-
-    return sections.join('\n');
+  }
+  for(const en of entries)await read(en,'');
+  const n=Object.keys(S.files).length;
+  if(n)showFI(entries.length===1?entries[0].name:entries.length+'个项目',n+' 个文件','📂');
 }
 
-// ============================================================
-// HTML GENERATOR
-// ============================================================
-function generateHTML(platform, a) {
-    const md = generateMarkdown(platform, a);
-    // Simple markdown → HTML
-    let content = md
-        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-        .replace(/^\| (.+)$/gm, (m, c) => {
-            const cells = c.split(' | ');
-            if (cells.every(x => /^[-:]+$/.test(x))) return '';
-            return '<tr>' + cells.map(x => `<td>${x}</td>`).join('') + '</tr>';
-        })
-        .replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table>$1</table>')
-        .replace(/<\/table>\s*<table>/g, '')
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/^---$/gm, '<hr>')
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\n/g, '<br>');
-
-    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${platform} 文档</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,sans-serif;line-height:1.6;color:#333;background:#f5f5f5;padding:2rem}div{max-width:800px;margin:0 auto;background:#fff;padding:2rem;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}h1{font-size:1.8rem;border-bottom:3px solid #e94560;padding-bottom:.5rem;margin-bottom:1rem}h2{font-size:1.3rem;color:#16213e;margin:1.5rem 0 .75rem}h3{font-size:1.1rem;color:#0f3460;margin:1rem 0 .5rem}code{background:#e8e8e8;padding:.1rem .3rem;border-radius:3px;font-size:.9em}pre{background:#1a1a2e;color:#e8e8e8;padding:1rem;border-radius:8px;overflow-x:auto;margin:.75rem 0}pre code{background:0 0;padding:0;color:inherit}table{width:100%;border-collapse:collapse;margin:.75rem 0}th,td{padding:.5rem .75rem;text-align:left;border-bottom:1px solid #ddd}th{background:#16213e;color:#fff}tr:hover{background:#f0f0f0}ul,ol{margin:.5rem 0 .5rem 1.5rem}li{margin:.2rem 0}hr{border:none;border-top:1px solid #ddd;margin:1rem 0}</style></head><body><div>${content}</div></body></html>`;
+function showFI(name,sz,ic){
+  $('fi-nm').textContent=name;
+  $('fi-sz').textContent=sz;
+  $('fi-ic').textContent=ic;
+  $('fi').classList.add('on');
+  $('uz').style.display='none';
+  $('um').style.display='none';
+  $('btn-go').disabled=false;
 }
 
-// ============================================================
-// UI RESULT
-// ============================================================
-function showResult(r) {
-    // Summary
-    const summary = document.getElementById('analysis-summary');
-    let html = '';
-    html += `<div class="summary-row"><span class="summary-key">平台</span><span class="summary-val">${r.platform}</span></div>`;
-    if (r.platform === 'chrome' && r.analysis.manifest) {
-        html += `<div class="summary-row"><span class="summary-key">名称</span><span class="summary-val">${r.analysis.manifest.name || 'N/A'}</span></div>`;
-        html += `<div class="summary-row"><span class="summary-key">版本</span><span class="summary-val">${r.analysis.manifest.version || 'N/A'}</span></div>`;
-        html += `<div class="summary-row"><span class="summary-key">权限</span><span class="summary-val">${r.analysis.permissions.length} 个</span></div>`;
-    } else if (r.platform === 'android') {
-        html += `<div class="summary-row"><span class="summary-key">包名</span><span class="summary-val">${r.analysis.manifest.package || 'N/A'}</span></div>`;
-        html += `<div class="summary-row"><span class="summary-key">权限</span><span class="summary-val">${r.analysis.permissions.length} 个</span></div>`;
-        html += `<div class="summary-row"><span class="summary-key">悬浮窗</span><span class="summary-val">${r.analysis.overlay.has ? '<span class="badge-yes">✓ ' + r.analysis.overlay.type + '</span>' : '<span class="badge-no">✗ 无</span>'}</span></div>`;
-        html += `<div class="summary-row"><span class="summary-key">按钮</span><span class="summary-val">${r.analysis.buttons.length} 个</span></div>`;
-        html += `<div class="summary-row"><span class="summary-key">源文件</span><span class="summary-val">${r.analysis.overlay.files.length} 个</span></div>`;
+function clearAll(){
+  S={mode:'zip',file:null,files:{},plat:'auto',result:null};
+  $('inp-zip').value='';$('inp-dir').value='';$('inp-multi').value='';
+  $('fi').classList.remove('on');
+  $('uz').style.display='block';
+  $('um').style.display='grid';
+  $('btn-go').disabled=true;
+  $('rs').classList.remove('on');
+}
+
+// --- Paste ---
+function openPaste(){$('pm').classList.add('on')}
+function closePaste(){$('pm').classList.remove('on')}
+function submitPaste(){
+  const code=$('pm-code').value.trim();
+  const name=$('pm-name').value.trim()||'code.js';
+  const plat=$('pm-plat').value;
+  if(!code){toast('请粘贴代码','er');return}
+  S.mode='paste';S.files={};S.files[name]=code;
+  if(plat!=='auto')S.plat=plat;
+  closePaste();
+  showFI(name,code.length+' 字符','📋');
+}
+
+// --- Analyze ---
+async function doAnalyze(){
+  const btn=$('btn-go');btn.disabled=true;
+  ld(true,'准备...');prog(10);
+  $('er').classList.remove('on');$('rs').classList.remove('on');
+
+  try{
+    // ZIP → extract
+    if(S.mode==='zip'&&S.file){
+      ld(true,'解压ZIP...');prog(15);
+      const zip=await JSZip.loadAsync(S.file);
+      ld(true,'读取文件...');prog(30);
+      S.files={};
+      const names=Object.keys(zip.files);
+      let c=0;
+      for(const nm of names){
+        const en=zip.files[nm];
+        if(!en.dir)try{S.files[nm]=await en.async('string')}catch(e){S.files[nm]=''}
+        c++;
+        if(c%10===0)prog(30+Math.floor(c/names.length*30));
+      }
     }
-    html += `<div class="summary-row"><span class="summary-key">文档长度</span><span class="summary-val">${r.markdown.length} 字符</span></div>`;
-    summary.innerHTML = html;
+    if(!Object.keys(S.files).length)throw new Error('请先选择文件');
 
-    // Markdown
-    document.getElementById('doc-markdown').innerHTML = renderMd(r.markdown);
-    // HTML preview
-    document.getElementById('doc-preview').innerHTML = r.html_doc.replace(/<!DOCTYPE[\s\S]*?<body>/i, '').replace(/<\/body><\/html>/i, '');
+    // Detect platform
+    ld(true,'检测平台...');prog(65);
+    let pl=S.plat;
+    if(pl==='auto')pl=detect();
+    if(!pl)throw new Error('无法检测平台，请手动选择');
 
-    document.getElementById('results').classList.add('active');
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    // Analyze
+    ld(true,'分析中...');prog(80);
+    const a=analyze(pl);
+
+    // Generate docs
+    ld(true,'生成文档...');prog(92);
+    const md=genMD(pl,a);
+    const html=genHTML(pl,a);
+    S.result={pl,a,md,html};
+
+    prog(100);ld(false);
+    showResult();
+    toast('✅ 完成','ok');
+  }catch(e){
+    ld(false);prog(0);
+    $('er').textContent='❌ '+e.message;$('er').classList.add('on');
+    toast(e.message,'er');
+  }finally{btn.disabled=false}
 }
 
-function renderMd(md) {
-    return md
-        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-        .replace(/^\| (.+)$/gm, (m, c) => {
-            const cells = c.split(' | ');
-            if (cells.every(x => /^[-:]+$/.test(x))) return '';
-            return '<tr>' + cells.map(x => `<td>${x}</td>`).join('') + '</tr>';
-        })
-        .replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table>$1</table>')
-        .replace(/<\/table>\s*<table>/g, '')
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/^---$/gm, '<hr>')
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\n/g, '<br>');
+// --- Platform Detection ---
+function detect(){
+  for(const nm of Object.keys(S.files)){
+    const b=nm.split('/').pop().split('\\').pop();
+    if(b==='manifest.json')return'chrome';
+    if(b==='AndroidManifest.xml')return'android';
+    if(b==='Info.plist'||b==='Package.swift')return'ios';
+  }
+  return null;
 }
 
-function switchTab(tab, el) {
-    document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('doc-markdown').style.display = tab === 'markdown' ? 'block' : 'none';
-    document.getElementById('doc-preview').style.display = tab === 'preview' ? 'block' : 'none';
+function findFile(name){
+  for(const nm of Object.keys(S.files)){
+    if(nm.endsWith('/'+name)||nm.endsWith('\\'+name)||nm===name)return nm;
+  }
+  return null;
 }
 
-function downloadDoc(fmt) {
-    if (!currentResult) return;
-    const content = fmt === 'md' ? currentResult.markdown : currentResult.htmlDoc;
-    const blob = new Blob([content], { type: fmt === 'md' ? 'text/markdown' : 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentResult.platform}_docs.${fmt}`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(`📥 已下载 ${fmt.toUpperCase()}`, 'success');
+function findFiles(ext){
+  return Object.keys(S.files).filter(n=>n.endsWith(ext)&&!n.includes('__MACOSX'));
 }
 
-// ============================================================
-// DEMO (inline Android example)
-// ============================================================
-async function loadDemo() {
-    setLoading(true, '加载示例...');
+// --- Analyzers ---
+function analyze(pl){
+  if(pl==='chrome')return anaChrome();
+  if(pl==='android')return anaAndroid();
+  if(pl==='ios')return anaIOS();
+  return{};
+}
 
-    // Create a fake Android project in memory
-    const demoZip = new JSZip();
-    demoZip.file('AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.floatingassistant">
+function anaChrome(){
+  r={platform:'chrome',manifest:{},perms:[],scripts:[],bg:{},popup:{}};
+  const p=findFile('manifest.json');
+  if(!p)return r;
+  try{
+    const m=JSON.parse(S.files[p]);
+    r.manifest=m;r.perms=m.permissions||[];
+    r.scripts=(m.content_scripts||[]).map(s=>({matches:s.matches||[],js:s.js||[],css:s.css||[]}));
+    if(m.background)r.bg={type:m.background.service_worker?'sw':'scripts'};
+    if(m.action&&m.action.default_popup)r.popup={path:m.action.default_popup};
+  }catch(e){}
+  return r;
+}
+
+function anaAndroid(){
+  r={platform:'android',pkg:'',perms:[],svcs:[],ov:{has:false,type:'',wm:false,files:[],snip:[]},btns:[]};
+  const p=findFile('AndroidManifest.xml');
+  if(!p)return r;
+  const xml=S.files[p]||'';
+  // Package
+  const pm=xml.match(/package="([^"]+)"/);
+  r.pkg=pm?pm[1]:'';
+  // Permissions
+  const pr=/android:name="([^"]+)"/g;let m;
+  while(m=pr.exec(xml))r.perms.push(m[1]);
+  // Services
+  const sr=/<service[^>]*>/g;
+  while(m=sr.exec(xml)){
+    const nm=m[0].match(/android:name="([^"]+)"/);
+    r.svcs.push({name:nm?nm[1]:''});
+  }
+  // Scan source
+  const jf=findFiles('.java').concat(findFiles('.kt'));
+  const kw=['WindowManager','TYPE_APPLICATION_OVERLAY','TYPE_SYSTEM_ALERT','SYSTEM_ALERT_WINDOW','addView','floating','overlay','bubble','float'];
+  for(const f of jf){
+    const c=S.files[f]||'';
+    if(c.includes('WindowManager')){r.ov.wm=true;r.ov.has=true}
+    if(c.includes('TYPE_APPLICATION_OVERLAY')){r.ov.type='APPLICATION_OVERLAY';r.ov.has=true}
+    if(c.includes('TYPE_SYSTEM_ALERT')){r.ov.type='SYSTEM_ALERT';r.ov.has=true}
+    for(const k of kw){
+      if(c.includes(k)){
+        if(!r.ov.files.includes(f))r.ov.files.push(f);
+        const lines=c.split('\n');
+        for(let i=0;i<lines.length;i++){
+          if(lines[i].includes(k)){
+            r.ov.snip.push({file:f,kw:k,code:lines.slice(Math.max(0,i-3),Math.min(lines.length,i+4)).join('\n').substring(0,250)});
+            break;
+          }
+        }
+        break;
+      }
+    }
+    const br=/(?:Button|ImageButton|FloatingActionButton)\s*\([^)]*\)/g;
+    let bm;while(bm=br.exec(c))r.btns.push({file:f,code:bm[0].substring(0,60)});
+  }
+  return r;
+}
+
+function anaIOS(){
+  r={platform:'ios',plist:{},apis:[]};
+  const p=findFile('Info.plist');
+  if(!p)return r;
+  const pl=S.files[p]||'';
+  ['CFBundleIdentifier','CFBundleShortVersionString','CFBundleName'].forEach(k=>{
+    const m=pl.match(new RegExp('<key>'+k+'</key>\\s*<string>([^<]+)</string>'));
+    if(m)r.plist[k]=m[1];
+  });
+  const sf=findFiles('.swift').concat(findFiles('.m'));
+  const kw=['UIAccessibility','accessibilityLabel','accessibilityHint','isAccessibilityElement'];
+  for(const f of sf){
+    const c=S.files[f]||'';
+    for(const k of kw)if(c.includes(k))r.apis.push({api:k,file:f});
+  }
+  return r;
+}
+
+// --- Markdown Generator ---
+function genMD(pl,a){
+  let s=[];
+  s.push(`# ${pl.toUpperCase()} 项目文档\n\n## 项目概览\n`);
+  if(pl==='chrome'){
+    const m=a.manifest;
+    s.push(`- **名称**: ${m.name||'N/A'}\n- **版本**: ${m.version||'N/A'}\n- **描述**: ${m.description||'N/A'}\n- **Manifest V**: ${m.manifest_version||'N/A'}`);
+  }else if(pl==='android'){
+    s.push(`- **包名**: ${a.pkg||'N/A'}\n- **权限**: ${a.perms.length} 个\n- **悬浮窗**: ${a.ov.has?a.ov.type:'无'}`);
+  }else{
+    s.push(`- **Bundle ID**: ${a.plist.CFBundleIdentifier||'N/A'}\n- **版本**: ${a.plist.CFBundleShortVersionString||'N/A'}`);
+  }
+  // Setup
+  s.push('\n## 安装指南\n');
+  if(pl==='chrome')s.push('1. `chrome://extensions/`\n2. 开发者模式\n3. 加载已解压扩展');
+  else if(pl==='android')s.push('1. Android Studio 打开\n2. Gradle 同步\n3. 无障碍启用\n4. 悬浮窗权限');
+  else s.push('1. Xcode 打开\n2. 安装依赖\n3. 辅助功能启用');
+  // Permissions
+  s.push('\n## 权限\n');
+  if(a.perms.length){
+    s.push('| 权限 | 说明 |\n|------|------|\n');
+    const d={'SYSTEM_ALERT_WINDOW':'悬浮窗','FOREGROUND_SERVICE':'前台服务','INTERNET':'网络','BIND_ACCESSIBILITY_SERVICE':'无障碍服务','activeTab':'活动标签','storage':'存储'};
+    a.perms.forEach(p=>s.push(`| \`${p}\` | ${d[p]||'系统权限'} |`));
+  }else s.push('无特殊权限');
+  // Overlay
+  if(pl==='android'&&a.ov.has){
+    s.push('\n## 悬浮窗\n');
+    s.push(`- 类型: \`${a.ov.type}\`\n- WindowManager: ${a.ov.wm?'是':'否'}\n`);
+    if(a.ov.files.length){s.push('\n### 文件\n');a.ov.files.forEach(f=>s.push(`- \`${f}\``))}
+    if(a.ov.snip.length){s.push('\n### 代码\n');a.ov.snip.slice(0,3).forEach(x=>{s.push(`**${x.file}** (\`${x.kw}\`)\n\`\`\`java\n${x.code}\n\`\`\`\n`)})}
+    if(a.btns.length){s.push('### 按钮\n| 文件 | 代码 |\n|------|------|\n');a.btns.slice(0,6).forEach(b=>s.push(`| \`${b.file}\` | \`${b.code}\` |`))}
+  }
+  // Scripts (Chrome)
+  if(pl==='chrome'&&a.scripts.length){
+    s.push('\n## Content Scripts\n');
+    a.scripts.forEach((sc,i)=>{s.push(`**${i+1}**\n- 匹配: \`${sc.matches.join(', ')}\`\n- JS: \`${sc.js.join(', ')}\`\n`)});
+  }
+  // APIs (iOS)
+  if(pl==='ios'&&a.apis.length){
+    s.push('\n## 无障碍 API\n');
+    a.apis.forEach(x=>s.push(`- \`${x.api}\` (${x.file})`));
+  }
+  // Guide
+  s.push('\n## 最佳实践\n');
+  if(pl==='chrome')s.push('- 最小权限\n- Manifest V3\n- CSP安全');
+  else if(pl==='android')s.push('- 生命周期管理\n- TalkBack兼容'+(a.ov.has?'\n- TYPE_APPLICATION_OVERLAY\n- canDrawOverlays权限\n- 拖拽+双击关闭':''));
+  else s.push('- accessibilityLabel\n- VoiceOver手势');
+  return s.join('\n');
+}
+
+function genHTML(pl,a){
+  const md=genMD(pl,a);
+  let c=md.replace(/```(\w*)\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>').replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^\| (.+)$/gm,(m,x)=>{const cs=x.split(' | ');if(cs.every(y=>/^[-:]+$/.test(y)))return'';return'<tr>'+cs.map(y=>`<td>${y}</td>`).join('')+'</tr>'})
+    .replace(/(<tr>[\s\S]*?<\/tr>)/g,'<table>$1</table>').replace(/<\/table>\s*<table>/g,'')
+    .replace(/^- (.+)$/gm,'<li>$1</li>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^---$/gm,'<hr>').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${pl} 文档</title>
+<style>body{font-family:-apple-system,sans-serif;line-height:1.6;color:#333;background:#f5f5f5;padding:1.5rem}div{max-width:800px;margin:0 auto;background:#fff;padding:1.5rem;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}h1{font-size:1.6rem;border-bottom:2px solid #e94560;padding-bottom:.4rem}h2{font-size:1.2rem;color:#16213e;margin:1rem 0 .5rem}code{background:#e8e8e8;padding:.1rem .3rem;border-radius:3px;font-size:.85em}pre{background:#1a1a2e;color:#e8e8e8;padding:.8rem;border-radius:6px;overflow-x:auto}pre code{background:0;color:inherit}table{width:100%;border-collapse:collapse;margin:.5rem 0}th,td{padding:.4rem .6rem;text-align:left;border-bottom:1px solid #ddd;font-size:.85rem}th{background:#16213e;color:#fff}ul{margin:.4rem 0 .4rem 1.2rem}li{margin:.15rem 0}</style></head><body><div>${c}</div></body></html>`;
+}
+
+// --- Show Result ---
+function showResult(){
+  const r=S.result;let h='';
+  h+=`<div class="sr"><span class="sk">平台</span><span class="sv">${r.pl}</span></div>`;
+  if(r.pl==='chrome'){
+    h+=`<div class="sr"><span class="sk">名称</span><span class="sv">${r.a.manifest.name||'N/A'}</span></div>`;
+    h+=`<div class="sr"><span class="sk">版本</span><span class="sv">${r.a.manifest.version||'N/A'}</span></div>`;
+  }else if(r.pl==='android'){
+    h+=`<div class="sr"><span class="sk">包名</span><span class="sv">${r.a.pkg||'N/A'}</span></div>`;
+    h+=`<div class="sr"><span class="sk">悬浮窗</span><span class="sv">${r.a.ov.has?'<span class="by">✓ '+r.a.ov.type+'</span>':'<span class="bn">✗</span>'}</span></div>`;
+    h+=`<div class="sr"><span class="sk">按钮</span><span class="sv">${r.a.btns.length}</span></div>`;
+  }
+  h+=`<div class="sr"><span class="sk">文档</span><span class="sv">${r.md.length} 字符</span></div>`;
+  $('su').innerHTML=h;
+  $('d-md').innerHTML=renderMd(r.md);
+  $('d-html').innerHTML=r.html.replace(/<!DOCTYPE[\s\S]*?<body>/i,'').replace(/<\/body><\/html>/i,'');
+  $('rs').classList.add('on');
+  $('rs').scrollIntoView({behavior:'smooth'});
+}
+
+function renderMd(md){
+  return md.replace(/```(\w*)\n([\s\S]*?)```/g,'<pre><code>$2</code></pre>').replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^\| (.+)$/gm,(m,x)=>{const cs=x.split(' | ');if(cs.every(y=>/^[-:]+$/.test(y)))return'';return'<tr>'+cs.map(y=>`<td>${y}</td>`).join('')+'</tr>'})
+    .replace(/(<tr>[\s\S]*?<\/tr>)/g,'<table>$1</table>').replace(/<\/table>\s*<table>/g,'')
+    .replace(/^- (.+)$/gm,'<li>$1</li>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^---$/gm,'<hr>').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+
+function swTab(i,el){
+  document.querySelectorAll('.dtb').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  $('d-md').style.display=i===0?'block':'none';
+  $('d-html').style.display=i===1?'block':'none';
+}
+
+function dlDoc(fmt){
+  if(!S.result)return;
+  const c=fmt==='md'?S.result.md:S.result.html;
+  const b=new Blob([c],{type:fmt==='md'?'text/markdown':'text/html'});
+  const u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=S.result.pl+'_docs.'+fmt;a.click();
+  URL.revokeObjectURL(u);toast('📥 已下载','ok');
+}
+
+// --- Demo ---
+function loadDemo(){
+  S.mode='paste';S.files={};
+  S.files['AndroidManifest.xml']=`<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.floating">
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <application>
-        <service android:name=".FloatingAccessibilityService" android:exported="false">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_config" />
+        <service android:name=".FloatingService" android:exported="false">
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/config" />
         </service>
     </application>
-</manifest>`);
-
-    demoZip.file('src/com/example/floatingassistant/FloatingAccessibilityService.java', `package com.example.floatingassistant;
-
+</manifest>`;
+  S.files['src/FloatingService.java']=`package com.example.floating;
 import android.accessibilityservice.AccessibilityService;
 import android.graphics.PixelFormat;
 import android.os.Build;
-import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.WindowManager;
-import android.view.accessibility.AccessibilityEvent;
+import android.view.*;
 import android.widget.Button;
 import android.widget.ImageButton;
 
-public class FloatingAccessibilityService extends AccessibilityService {
-    private WindowManager windowManager;
-    private View floatingView;
+public class FloatingService extends AccessibilityService {
+    private WindowManager wm;
+    private View floatView;
 
-    @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {}
-
-    @Override
-    public void onInterrupt() {}
-
-    @Override
-    protected void onServiceConnected() {
-        super.onServiceConnected();
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-        createFloatingView();
+    @Override protected void onServiceConnected() {
+        wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        createFloat();
     }
 
-    private void createFloatingView() {
-        floatingView = LayoutInflater.from(this).inflate(R.layout.floating_layout, null);
-
+    private void createFloat() {
+        floatView = LayoutInflater.from(this).inflate(R.layout.float_layout, null);
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
-
+            ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                type,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
-        );
+            200, 200, type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
-        params.x = 100;
-        params.y = 200;
+        wm.addView(floatView, params);
 
-        windowManager.addView(floatingView, params);
-
-        Button closeButton = floatingView.findViewById(R.id.close_button);
-        closeButton.setOnClickListener(v -> {
-            windowManager.removeView(floatingView);
-            stopSelf();
-        });
-
-        ImageButton dragHandle = floatingView.findViewById(R.id.drag_handle);
-        setupDrag(dragHandle, params);
+        Button close = floatView.findViewById(R.id.close);
+        close.setOnClickListener(v -> { wm.removeView(floatView); stopSelf(); });
+        ImageButton drag = floatView.findViewById(R.id.drag);
+        setupDrag(drag, params);
     }
 
-    private void setupDrag(View handle, WindowManager.LayoutParams params) {
-        // Drag implementation
-    }
-}`);
-
-    const blob = await demoZip.generateAsync({ type: 'blob' });
-    setFile(new File([blob], 'demo-android.zip', { type: 'application/zip' }));
-    selectedPlatform = 'android';
-    document.querySelectorAll('.platform-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.platform === 'android');
-    });
-    setLoading(false);
-    showToast('✅ 示例已加载', 'success');
+    private void setupDrag(View handle, WindowManager.LayoutParams params) {}
+    @Override public void onAccessibilityEvent(android.view.accessibility.AccessibilityEvent e) {}
+    @Override public void onInterrupt() {}
+}`;
+  showFI('Demo Android 项目','2 个文件','📋');
+  S.plat='android';
+  document.querySelectorAll('.pb').forEach(b=>b.classList.toggle('on',b.dataset.p==='android'));
+  toast('✅ 示例已加载','ok');
 }
 
-// ============================================================
+// --- Helpers ---
+function fmtSz(b){return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'}
+function toast(m,t){const e=$('ts');e.textContent=m;e.className='ts ts-'+t+' on';setTimeout(()=>e.classList.remove('on'),2500)}
+function prog(p){$('pbar').style.display=p>0?'block':'none';$('pfl').style.width=p+'%'}
+function ld(show,detail){$('ld').classList.toggle('on',show);if(detail)$('ld-d').textContent=detail}
+
 // PWA
-// ============================================================
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script>
 </body>
 </html>
