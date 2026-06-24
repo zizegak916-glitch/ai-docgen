@@ -7,6 +7,7 @@ AI DocGen 是一款智能文档生成工具，支持 Chrome 扩展、Android 无
 ### 支持平台
 - **Chrome 扩展** — 分析 manifest.json、content scripts、background/service worker 等
 - **Android 无障碍服务** — 分析 AndroidManifest.xml、AccessibilityService、布局文件等
+- **Android 悬浮窗/浮窗按钮** — 自动检测 WindowManager、TYPE_APPLICATION_OVERLAY，生成悬浮窗实现文档
 - **iOS 应用** — 分析 Info.plist、UIAccessibility API 使用、依赖管理等
 
 ### 文档格式
@@ -65,7 +66,8 @@ ai-docgen enhance docs/chrome_docs.md --llm deepseek
 | 平台 | 检测文件 | 分析内容 |
 |------|----------|----------|
 | Chrome 扩展 | `manifest.json` | 权限、content scripts、background、popup |
-| Android | `AndroidManifest.xml` | 无障碍服务配置、事件类型、权限 |
+| Android 无障碍 | `AndroidManifest.xml` | 无障碍服务配置、事件类型、权限 |
+| Android 悬浮窗 | `*.java/*.kt` | WindowManager、悬浮窗类型、浮窗按钮 |
 | iOS | `Info.plist` | 权限、无障碍API、依赖管理 |
 
 ## 技术架构
