@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icon-192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --primary: #6366f1;
@@ -21,219 +22,176 @@
             --muted: #94a3b8;
             --success: #22c55e;
             --error: #ef4444;
-            --warning: #f59e0b;
             --radius: 12px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            overflow-x: hidden;
+            background: var(--bg); color: var(--text); min-height: 100vh;
         }
-
-        /* ===== HEADER ===== */
         .header {
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-            border-bottom: 1px solid var(--border);
-            padding: 2rem 1.5rem 1.5rem;
-            text-align: center;
+            border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 1.5rem; text-align: center;
         }
         .badge { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: var(--primary); color: white; margin-bottom: 0.75rem; }
         h1 {
-            font-size: 2.5rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.5rem;
+            font-size: 2.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.5rem;
             background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
             -webkit-background-clip: text; color: transparent;
         }
-        .subtitle { font-size: 1.1rem; color: var(--muted); max-width: 600px; margin: 0 auto 1.5rem; }
-        .platforms { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
-        .platform-tag { padding: 0.4rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+        .subtitle { font-size: 1rem; color: var(--muted); max-width: 500px; margin: 0 auto 1.5rem; }
+        .platforms { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
+        .platform-tag { padding: 0.4rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; }
         .p-chrome { background: #4285f420; color: #60a5fa; border: 1px solid #4285f440; }
         .p-android { background: #3ddc8420; color: #4ade80; border: 1px solid #3ddc8440; }
         .p-ios { background: #007aff20; color: #60a5fa; border: 1px solid #007aff40; }
 
-        /* ===== LAYOUT ===== */
-        .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
-        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
-
-        /* ===== CARDS ===== */
+        .container { max-width: 800px; margin: 0 auto; padding: 1.5rem; }
         .card {
             background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-            padding: 1.5rem; transition: border-color 0.2s;
+            padding: 1.5rem; margin-bottom: 1rem;
         }
-        .card:hover { border-color: var(--primary); }
         .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 
-        /* ===== UPLOAD ZONE ===== */
+        /* Upload */
         .upload-zone {
-            border: 2px dashed var(--border); border-radius: var(--radius); padding: 3rem 2rem;
-            text-align: center; cursor: pointer; transition: all 0.3s;
-            background: var(--bg2);
+            border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem 1.5rem;
+            text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg2);
         }
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: var(--primary); background: #6366f110;
-        }
-        .upload-zone.dragover { transform: scale(1.02); }
-        .upload-icon { font-size: 3rem; margin-bottom: 1rem; }
-        .upload-text { font-size: 1rem; color: var(--muted); }
+        .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: #6366f110; }
+        .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+        .upload-text { font-size: 0.9rem; color: var(--muted); }
         .upload-text strong { color: var(--text); }
-        .upload-hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
-
+        .upload-hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
         .file-input { display: none; }
 
-        /* ===== PLATFORM SELECT ===== */
-        .platform-select { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        /* Platform select */
+        .platform-select { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
         .platform-btn {
-            padding: 0.5rem 1.2rem; border-radius: 8px; border: 1px solid var(--border);
-            background: transparent; color: var(--muted); font-size: 0.85rem; cursor: pointer;
+            padding: 0.45rem 1rem; border-radius: 8px; border: 1px solid var(--border);
+            background: transparent; color: var(--muted); font-size: 0.8rem; cursor: pointer;
             transition: all 0.2s; font-weight: 500;
         }
         .platform-btn:hover { border-color: var(--primary); color: var(--text); }
         .platform-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* ===== BUTTONS ===== */
+        /* Buttons */
         .btn {
-            padding: 0.7rem 1.5rem; border-radius: 8px; border: none; font-size: 0.9rem;
+            padding: 0.65rem 1.3rem; border-radius: 8px; border: none; font-size: 0.85rem;
             font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex;
             align-items: center; gap: 0.5rem;
         }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
         .btn-outline:hover { border-color: var(--primary); color: var(--text); }
-        .btn-success { background: var(--success); color: white; }
         .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
 
-        /* ===== LOADING ===== */
+        /* File info */
+        .file-info { display: none; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg); border-radius: 8px; margin-bottom: 1rem; }
+        .file-info.active { display: flex; }
+        .file-icon { font-size: 1.8rem; }
+        .file-name { font-weight: 600; font-size: 0.85rem; }
+        .file-size { font-size: 0.75rem; color: var(--muted); }
+        .file-remove { margin-left: auto; cursor: pointer; color: var(--error); font-size: 1.1rem; padding: 0.25rem; }
+
+        /* Loading */
         .loading { display: none; text-align: center; padding: 2rem; }
         .loading.active { display: block; }
         .spinner {
-            width: 40px; height: 40px; border: 3px solid var(--border);
+            width: 36px; height: 36px; border: 3px solid var(--border);
             border-top-color: var(--primary); border-radius: 50%;
-            animation: spin 0.8s linear infinite; margin: 0 auto 1rem;
+            animation: spin 0.8s linear infinite; margin: 0 auto 0.75rem;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: var(--muted); font-size: 0.9rem; }
+        .loading-text { color: var(--muted); font-size: 0.85rem; }
+        .loading-detail { color: var(--primary); font-size: 0.8rem; margin-top: 0.5rem; font-family: monospace; }
 
-        /* ===== FILE INFO ===== */
-        .file-info { display: none; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg); border-radius: 8px; margin-bottom: 1rem; }
-        .file-info.active { display: flex; }
-        .file-icon { font-size: 2rem; }
-        .file-name { font-weight: 600; font-size: 0.9rem; }
-        .file-size { font-size: 0.8rem; color: var(--muted); }
-        .file-remove { margin-left: auto; cursor: pointer; color: var(--error); font-size: 1.2rem; padding: 0.25rem; }
+        /* Progress */
+        .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 0.75rem 0; }
+        .progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; width: 0%; }
 
-        /* ===== RESULTS ===== */
+        /* Results */
         .results { display: none; }
         .results.active { display: block; }
         .result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-
-        /* ===== ANALYSIS TREE ===== */
-        .analysis-tree { max-height: 400px; overflow-y: auto; padding-right: 0.5rem; }
-        .analysis-tree::-webkit-scrollbar { width: 6px; }
-        .analysis-tree::-webkit-scrollbar-track { background: var(--bg); border-radius: 3px; }
-        .analysis-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        .tree-item { padding: 0.5rem 0; border-bottom: 1px solid #ffffff08; }
-        .tree-key { color: #a78bfa; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; }
-        .tree-value { color: var(--text); font-size: 0.85rem; margin-left: 0.5rem; }
-        .tree-badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .badge-yes { background: #22c55e20; color: #4ade80; }
-        .badge-no { background: #ef444420; color: #f87171; }
-
-        /* ===== DOC PREVIEW ===== */
         .doc-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
         .doc-tab {
-            padding: 0.6rem 1.2rem; border: none; background: transparent; color: var(--muted);
-            font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+            padding: 0.5rem 1rem; border: none; background: transparent; color: var(--muted);
+            font-size: 0.8rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
         }
         .doc-tab:hover { color: var(--text); }
         .doc-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
         .doc-content {
-            max-height: 600px; overflow-y: auto; padding: 1rem; background: var(--bg);
-            border-radius: 8px; font-size: 0.85rem; line-height: 1.6;
+            max-height: 500px; overflow-y: auto; padding: 1rem; background: var(--bg);
+            border-radius: 8px; font-size: 0.8rem; line-height: 1.6;
         }
-        .doc-content::-webkit-scrollbar { width: 6px; }
-        .doc-content::-webkit-scrollbar-track { background: var(--bg); border-radius: 3px; }
+        .doc-content::-webkit-scrollbar { width: 5px; }
+        .doc-content::-webkit-scrollbar-track { background: var(--bg); }
         .doc-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        .doc-content pre { background: #0f172a; padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; }
-        .doc-content code { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
-        .doc-content table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
-        .doc-content th, .doc-content td { padding: 0.4rem 0.6rem; text-align: left; border-bottom: 1px solid var(--border); }
-        .doc-content th { background: var(--bg2); color: var(--primary); font-weight: 600; }
 
-        /* ===== MARKDOWN RENDERER ===== */
-        .md-content h1 { font-size: 1.5rem; margin: 1rem 0 0.5rem; color: var(--primary); }
-        .md-content h2 { font-size: 1.2rem; margin: 1rem 0 0.5rem; color: #a78bfa; }
-        .md-content h3 { font-size: 1rem; margin: 0.75rem 0 0.4rem; color: #c084fc; }
-        .md-content p { margin: 0.4rem 0; }
-        .md-content ul, .md-content ol { margin: 0.4rem 0 0.4rem 1.5rem; }
-        .md-content li { margin: 0.2rem 0; }
-        .md-content code { background: #334155; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.8rem; }
-        .md-content pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 0.75rem 0; }
+        /* Markdown render */
+        .md-content h1 { font-size: 1.3rem; margin: 0.8rem 0 0.4rem; color: var(--primary); }
+        .md-content h2 { font-size: 1.1rem; margin: 0.8rem 0 0.4rem; color: #a78bfa; }
+        .md-content h3 { font-size: 0.95rem; margin: 0.6rem 0 0.3rem; color: #c084fc; }
+        .md-content p { margin: 0.3rem 0; }
+        .md-content ul, .md-content ol { margin: 0.3rem 0 0.3rem 1.2rem; }
+        .md-content li { margin: 0.15rem 0; }
+        .md-content code { background: #334155; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.75rem; }
+        .md-content pre { background: #0f172a; padding: 0.8rem; border-radius: 8px; overflow-x: auto; margin: 0.5rem 0; }
         .md-content pre code { background: transparent; padding: 0; color: #a5f3fc; }
-        .md-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
-        .md-content th, .md-content td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        .md-content table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
+        .md-content th, .md-content td { padding: 0.4rem 0.6rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
         .md-content th { background: var(--bg2); color: var(--primary); font-weight: 600; }
-        .md-content hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+        .md-content hr { border: none; border-top: 1px solid var(--border); margin: 0.8rem 0; }
 
-        /* ===== HTML PREVIEW ===== */
-        .html-preview {
-            background: white; border-radius: 8px; padding: 1.5rem; max-height: 600px; overflow-y: auto;
-        }
-        .html-preview h1 { color: #1a1a2e; }
-        .html-preview h2 { color: #16213e; }
+        /* Analysis tree */
+        .analysis-summary { background: var(--bg); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .summary-row { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.8rem; border-bottom: 1px solid #ffffff08; }
+        .summary-key { color: var(--primary); font-weight: 500; }
+        .summary-val { color: var(--text); }
+        .badge-yes { background: #22c55e20; color: #4ade80; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; }
+        .badge-no { background: #ef444420; color: #f87171; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; }
 
-        /* ===== ERROR ===== */
-        .error-box {
-            display: none; padding: 1rem; background: #ef444415; border: 1px solid #ef444440;
-            border-radius: 8px; color: #f87171; margin-top: 1rem;
-        }
+        /* Error */
+        .error-box { display: none; padding: 1rem; background: #ef444415; border: 1px solid #ef444440; border-radius: 8px; color: #f87171; margin-top: 1rem; font-size: 0.85rem; }
         .error-box.active { display: block; }
 
-        /* ===== FOOTER ===== */
-        .footer {
-            margin-top: 3rem; padding: 1.5rem; border-top: 1px solid var(--border);
-            text-align: center; color: var(--muted); font-size: 0.85rem;
-        }
+        /* Features */
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-top: 1.5rem; }
+        .feature { padding: 1rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); text-align: center; }
+        .feature .icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+        .feature h3 { font-size: 0.9rem; margin-bottom: 0.2rem; }
+        .feature p { font-size: 0.75rem; color: var(--muted); }
+
+        .footer { margin-top: 2rem; padding: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 0.8rem; }
         .footer a { color: var(--primary); text-decoration: none; }
-        .footer a:hover { text-decoration: underline; }
 
-        /* ===== FEATURES ===== */
-        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
-        .feature { padding: 1.2rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); text-align: center; }
-        .feature .icon { font-size: 2rem; margin-bottom: 0.5rem; }
-        .feature h3 { font-size: 0.95rem; margin-bottom: 0.3rem; }
-        .feature p { font-size: 0.8rem; color: var(--muted); }
-
-        /* ===== NOTIFICATION ===== */
         .toast {
-            position: fixed; bottom: 2rem; right: 2rem; padding: 0.75rem 1.25rem;
-            border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+            position: fixed; bottom: 2rem; right: 1rem; left: 1rem;
+            padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500;
             transform: translateY(100px); opacity: 0; transition: all 0.3s;
-            z-index: 1000; max-width: 400px;
+            z-index: 1000; text-align: center;
         }
         .toast.show { transform: translateY(0); opacity: 1; }
         .toast-success { background: var(--success); color: white; }
         .toast-error { background: var(--error); color: white; }
 
-        /* ===== FULL WIDTH ===== */
-        .full-width { grid-column: 1 / -1; }
-
-        /* ===== API STATUS ===== */
-        .api-status { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--muted); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+        @media (max-width: 600px) {
+            .header { padding: 1.5rem 1rem 1rem; }
+            h1 { font-size: 1.8rem; }
+            .container { padding: 1rem; }
+            .card { padding: 1.2rem; }
+        }
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <div class="header">
-    <span class="badge">v1.0 Web</span>
+    <span class="badge">v1.0 · 纯前端</span>
     <h1>AI DocGen</h1>
-    <p class="subtitle">上传项目代码，自动分析并生成专业文档 — 无需终端，浏览器直接用</p>
+    <p class="subtitle">上传项目代码，浏览器内自动分析并生成专业文档 — 无需服务器</p>
     <div class="platforms">
         <span class="platform-tag p-chrome">🔌 Chrome 扩展</span>
         <span class="platform-tag p-android">📱 Android 无障碍</span>
@@ -241,9 +199,8 @@
     </div>
 </div>
 
-<!-- MAIN -->
 <div class="container">
-    <!-- UPLOAD SECTION -->
+    <!-- UPLOAD -->
     <div class="card" id="upload-section">
         <div class="card-title">📂 上传项目</div>
 
@@ -265,23 +222,22 @@
 
         <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
             <div class="upload-icon">📁</div>
-            <div class="upload-text">拖拽 <strong>.zip</strong> 文件到此处，或 <strong style="color: var(--primary)">点击选择</strong></div>
-            <div class="upload-hint">支持 Chrome 扩展 / Android / iOS 项目</div>
+            <div class="upload-text">拖拽 <strong>.zip</strong> 到此处，或 <strong style="color: var(--primary)">点击选择</strong></div>
+            <div class="upload-hint">纯前端分析，文件不会上传到任何服务器</div>
         </div>
         <input type="file" class="file-input" id="file-input" accept=".zip" onchange="handleFileSelect(event)">
 
+        <div class="progress-bar" id="progress-bar" style="display:none"><div class="progress-fill" id="progress-fill"></div></div>
+
         <div class="btn-group">
-            <button class="btn btn-primary" id="analyze-btn" onclick="analyzeProject()" disabled>
-                🚀 开始分析
-            </button>
-            <button class="btn btn-outline" onclick="loadDemo()">
-                📋 加载示例
-            </button>
+            <button class="btn btn-primary" id="analyze-btn" onclick="analyzeProject()" disabled>🚀 开始分析</button>
+            <button class="btn btn-outline" onclick="loadDemo()">📋 示例</button>
         </div>
 
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <div class="loading-text">正在分析项目结构，生成文档中...</div>
+            <div class="loading-text">分析中...</div>
+            <div class="loading-detail" id="loading-detail"></div>
         </div>
 
         <div class="error-box" id="error-box"></div>
@@ -289,98 +245,70 @@
 
     <!-- RESULTS -->
     <div class="results" id="results">
-        <div class="main-grid">
-            <!-- LEFT: Analysis -->
-            <div class="card">
-                <div class="card-title">🔍 分析结果</div>
-                <div class="analysis-tree" id="analysis-tree"></div>
-            </div>
-
-            <!-- RIGHT: Document -->
-            <div class="card full-width">
-                <div class="result-header">
-                    <div class="card-title" style="margin-bottom: 0">📝 生成文档</div>
-                    <div class="btn-group" style="margin-top: 0">
-                        <button class="btn btn-outline" onclick="downloadDoc('md')">📥 Markdown</button>
-                        <button class="btn btn-outline" onclick="downloadDoc('html')">📥 HTML</button>
-                    </div>
+        <div class="card">
+            <div class="card-title">📊 分析摘要</div>
+            <div class="analysis-summary" id="analysis-summary"></div>
+        </div>
+        <div class="card">
+            <div class="result-header">
+                <div class="card-title" style="margin-bottom:0">📝 生成文档</div>
+                <div class="btn-group" style="margin-top:0">
+                    <button class="btn btn-outline" onclick="downloadDoc('md')">📥 MD</button>
+                    <button class="btn btn-outline" onclick="downloadDoc('html')">📥 HTML</button>
                 </div>
-
-                <div class="doc-tabs">
-                    <button class="doc-tab active" onclick="switchTab('markdown')">Markdown</button>
-                    <button class="doc-tab" onclick="switchTab('preview')">HTML 预览</button>
-                </div>
-
-                <div class="doc-content md-content" id="doc-markdown"></div>
-                <div class="doc-content html-preview" id="doc-preview" style="display: none;"></div>
             </div>
+            <div class="doc-tabs">
+                <button class="doc-tab active" onclick="switchTab('markdown',this)">Markdown</button>
+                <button class="doc-tab" onclick="switchTab('preview',this)">HTML 预览</button>
+            </div>
+            <div class="doc-content md-content" id="doc-markdown"></div>
+            <div class="doc-content" id="doc-preview" style="display:none"></div>
         </div>
     </div>
 
-    <!-- FEATURES -->
     <div class="features">
-        <div class="feature">
-            <div class="icon">🔍</div>
-            <h3>智能分析</h3>
-            <p>自动识别项目类型，深度解析配置文件</p>
-        </div>
-        <div class="feature">
-            <div class="icon">📝</div>
-            <h3>多格式输出</h3>
-            <p>Markdown + HTML 双格式，一键下载</p>
-        </div>
-        <div class="feature">
-            <div class="icon">🤖</div>
-            <h3>AI 增强</h3>
-            <p>集成 OpenAI/DeepSeek 智能优化文档</p>
-        </div>
-        <div class="feature">
-            <div class="icon">🌐</div>
-            <h3>Web 在线用</h3>
-            <p>无需安装，浏览器拖拽上传即用</p>
-        </div>
+        <div class="feature"><div class="icon">🔍</div><h3>智能分析</h3><p>自动识别项目类型</p></div>
+        <div class="feature"><div class="icon">📝</div><h3>多格式输出</h3><p>Markdown + HTML</p></div>
+        <div class="feature"><div class="icon">🔒</div><h3>纯前端</h3><p>文件不离开浏览器</p></div>
+        <div class="feature"><div class="icon">🌐</div><h3>离线可用</h3><p>PWA可安装</p></div>
     </div>
 
     <div class="footer">
-        <p>MIT License · <a href="https://github.com/zizegak916-glitch/ai-docgen">GitHub</a> · <a href="https://pypi.org/project/ai-docgen/">PyPI</a></p>
+        <p>MIT License · <a href="https://github.com/zizegak916-glitch/ai-docgen">GitHub</a></p>
     </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
+// ============================================================
+// STATE
+// ============================================================
 let selectedFile = null;
 let selectedPlatform = 'auto';
-let currentAnalysis = null;
+let currentResult = null;
+let zipFiles = {}; // {path: content}
 
-// ===== PLATFORM SELECT =====
+// ============================================================
+// UI HELPERS
+// ============================================================
 function selectPlatform(btn) {
     document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedPlatform = btn.dataset.platform;
 }
 
-// ===== FILE HANDLING =====
 const uploadZone = document.getElementById('upload-zone');
-const fileInput = document.getElementById('file-input');
-
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
 uploadZone.addEventListener('drop', e => {
-    e.preventDefault();
-    uploadZone.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length > 0 && files[0].name.endsWith('.zip')) {
-        setFile(files[0]);
-    } else {
-        showToast('仅支持 .zip 格式', 'error');
-    }
+    e.preventDefault(); uploadZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.zip')) setFile(f);
+    else showToast('仅支持 .zip', 'error');
 });
 
-function handleFileSelect(e) {
-    if (e.target.files.length > 0) setFile(e.target.files[0]);
-}
+function handleFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
 
 function setFile(file) {
     selectedFile = file;
@@ -390,213 +318,540 @@ function setFile(file) {
     uploadZone.style.display = 'none';
     document.getElementById('analyze-btn').disabled = false;
 }
-
 function clearFile() {
-    selectedFile = null;
-    fileInput.value = '';
+    selectedFile = null; document.getElementById('file-input').value = '';
     document.getElementById('file-info').classList.remove('active');
     uploadZone.style.display = 'block';
     document.getElementById('analyze-btn').disabled = true;
 }
-
-function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-    return (bytes/(1024*1024)).toFixed(1) + ' MB';
+function formatSize(b) { return b < 1024 ? b+'B' : b < 1048576 ? (b/1024).toFixed(1)+'KB' : (b/1048576).toFixed(1)+'MB'; }
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = `toast toast-${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+function setProgress(pct) {
+    const bar = document.getElementById('progress-bar');
+    const fill = document.getElementById('progress-fill');
+    bar.style.display = pct > 0 ? 'block' : 'none';
+    fill.style.width = pct + '%';
+}
+function setLoading(show, detail) {
+    document.getElementById('loading').classList.toggle('active', show);
+    if (detail) document.getElementById('loading-detail').textContent = detail;
 }
 
-// ===== ANALYZE =====
+// ============================================================
+// MAIN ANALYSIS
+// ============================================================
 async function analyzeProject() {
     if (!selectedFile) return;
-
     const btn = document.getElementById('analyze-btn');
-    const loading = document.getElementById('loading');
-    const errorBox = document.getElementById('error-box');
-
     btn.disabled = true;
-    loading.classList.add('active');
-    errorBox.classList.remove('active');
+    setLoading(true, '解压文件...');
+    setProgress(10);
+    document.getElementById('error-box').classList.remove('active');
     document.getElementById('results').classList.remove('active');
 
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('platform', selectedPlatform);
-
     try {
-        const resp = await fetch('/api/analyze', { method: 'POST', body: formData });
-        const data = await resp.json();
+        // 1. 解压
+        setLoading(true, '读取ZIP...');
+        setProgress(20);
+        const zip = await JSZip.loadAsync(selectedFile);
 
-        if (!resp.ok) {
-            throw new Error(data.error || '分析失败');
+        // 2. 读取所有文件
+        setLoading(true, '解析文件结构...');
+        setProgress(40);
+        zipFiles = {};
+        const entries = Object.keys(zip.files);
+        let count = 0;
+        for (const name of entries) {
+            const entry = zip.files[name];
+            if (!entry.dir) {
+                try {
+                    zipFiles[name] = await entry.async('string');
+                } catch(e) { zipFiles[name] = ''; }
+            }
+            count++;
+            if (count % 20 === 0) setProgress(40 + Math.floor(count / entries.length * 30));
         }
 
-        renderResults(data);
-        showToast('✅ 文档生成成功！', 'success');
-    } catch (err) {
-        errorBox.textContent = '❌ ' + err.message;
-        errorBox.classList.add('active');
+        // 3. 检测平台
+        setLoading(true, '检测平台类型...');
+        setProgress(75);
+        let platform = selectedPlatform;
+        if (platform === 'auto') platform = detectPlatform();
+        if (!platform) throw new Error('无法检测平台类型。请确认ZIP包含 manifest.json、AndroidManifest.xml 或 Info.plist');
+
+        // 4. 分析
+        setLoading(true, '深度分析中...');
+        setProgress(85);
+        const analysis = analyzeProject_(platform);
+
+        // 5. 生成文档
+        setLoading(true, '生成文档...');
+        setProgress(95);
+        const markdown = generateMarkdown(platform, analysis);
+        const htmlDoc = generateHTML(platform, analysis);
+
+        currentResult = { platform, analysis, markdown, htmlDoc };
+
+        // 6. 显示
+        setProgress(100);
+        setLoading(false);
+        showResult(currentResult);
+        showToast('✅ 分析完成！', 'success');
+    } catch(err) {
+        setLoading(false); setProgress(0);
+        document.getElementById('error-box').textContent = '❌ ' + err.message;
+        document.getElementById('error-box').classList.add('active');
         showToast(err.message, 'error');
     } finally {
         btn.disabled = false;
-        loading.classList.remove('active');
     }
 }
 
-// ===== DEMO =====
-async function loadDemo() {
-    const btn = document.getElementById('analyze-btn');
-    const loading = document.getElementById('loading');
-
-    btn.disabled = true;
-    loading.classList.add('active');
-    document.getElementById('error-box').classList.remove('active');
-
-    try {
-        const resp = await fetch('/api/demo');
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || '加载失败');
-        renderResults(data);
-        showToast('✅ 示例文档已加载', 'success');
-    } catch (err) {
-        document.getElementById('error-box').textContent = '❌ ' + err.message;
-        document.getElementById('error-box').classList.add('active');
-    } finally {
-        btn.disabled = false;
-        loading.classList.remove('active');
+// ============================================================
+// PLATFORM DETECTION
+// ============================================================
+function detectPlatform() {
+    for (const name of Object.keys(zipFiles)) {
+        const base = name.split('/').pop();
+        if (base === 'manifest.json') return 'chrome';
+        if (base === 'AndroidManifest.xml') return 'android';
+        if (base === 'Info.plist' || base === 'Package.swift') return 'ios';
     }
-}
-
-// ===== RENDER =====
-function renderResults(data) {
-    currentAnalysis = data;
-
-    // Analysis tree
-    const tree = document.getElementById('analysis-tree');
-    tree.innerHTML = renderTree(data.analysis, 0);
-
-    // Markdown
-    document.getElementById('doc-markdown').innerHTML = renderMarkdown(data.markdown);
-
-    // HTML preview
-    document.getElementById('doc-preview').innerHTML = data.html_doc;
-
-    document.getElementById('results').classList.add('active');
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-}
-
-function renderTree(obj, depth) {
-    if (obj === null || obj === undefined) return '<span class="tree-value" style="color: var(--muted)">null</span>';
-    if (typeof obj !== 'object') return `<span class="tree-value">${escapeHtml(String(obj))}</span>`;
-
-    let html = '';
-    const entries = Array.isArray(obj) ? obj.map((v, i) => [i, v]) : Object.entries(obj);
-
-    for (const [key, val] of entries) {
-        if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)) continue;
-
-        if (typeof val === 'object' && val !== null) {
-            const label = Array.isArray(val) ? `Array(${val.length})` : '{...}';
-            html += `<div class="tree-item" style="padding-left: ${depth * 12}px">
-                <span class="tree-key">${escapeHtml(String(key))}</span>
-                <span class="tree-value" style="color: var(--muted)">${label}</span>
-            </div>`;
-            if (depth < 2) html += renderTree(val, depth + 1);
-        } else if (typeof val === 'boolean') {
-            html += `<div class="tree-item" style="padding-left: ${depth * 12}px">
-                <span class="tree-key">${escapeHtml(String(key))}</span>
-                <span class="tree-badge ${val ? 'badge-yes' : 'badge-no'}">${val ? '✓ 是' : '✗ 否'}</span>
-            </div>`;
-        } else {
-            const display = String(val).length > 80 ? String(val).slice(0, 80) + '...' : String(val);
-            html += `<div class="tree-item" style="padding-left: ${depth * 12}px">
-                <span class="tree-key">${escapeHtml(String(key))}</span>
-                <span class="tree-value">${escapeHtml(display)}</span>
-            </div>`;
+    // Check nested (single root folder)
+    for (const name of Object.keys(zipFiles)) {
+        const parts = name.split('/');
+        if (parts.length >= 2) {
+            const base = parts[parts.length - 1];
+            if (base === 'manifest.json') return 'chrome';
+            if (base === 'AndroidManifest.xml') return 'android';
+            if (base === 'Info.plist') return 'ios';
         }
     }
-    return html;
+    return null;
 }
 
-function renderMarkdown(md) {
-    // Simple markdown to HTML
-    let html = md
+function findFile(pattern) {
+    for (const name of Object.keys(zipFiles)) {
+        if (name.endsWith('/' + pattern) || name === pattern) return name;
+    }
+    return null;
+}
+
+function findFiles(ext) {
+    const results = [];
+    for (const name of Object.keys(zipFiles)) {
+        if (name.endsWith(ext) && !name.includes('__MACOSX')) results.push(name);
+    }
+    return results;
+}
+
+// ============================================================
+// ANALYZERS
+// ============================================================
+function analyzeProject_(platform) {
+    switch(platform) {
+        case 'chrome': return analyzeChrome();
+        case 'android': return analyzeAndroid();
+        case 'ios': return analyzeIOS();
+        default: return {};
+    }
+}
+
+function analyzeChrome() {
+    const result = { platform: 'chrome', manifest: {}, permissions: [], content_scripts: [], background: {}, popup: {} };
+    const mPath = findFile('manifest.json');
+    if (!mPath) return result;
+    try {
+        const manifest = JSON.parse(zipFiles[mPath]);
+        result.manifest = manifest;
+        result.permissions = manifest.permissions || [];
+        result.content_scripts = (manifest.content_scripts || []).map(cs => ({
+            matches: cs.matches || [], js: cs.js || [], css: cs.css || []
+        }));
+        if (manifest.background) {
+            result.background = {
+                type: manifest.background.service_worker ? 'service_worker' : 'scripts',
+                path: manifest.background.service_worker || (manifest.background.scripts || [])[0] || ''
+            };
+        }
+        if (manifest.action && manifest.action.default_popup) {
+            result.popup = { path: manifest.action.default_popup };
+        }
+    } catch(e) {}
+    return result;
+}
+
+function analyzeAndroid() {
+    const result = { platform: 'android', manifest: {}, permissions: [], services: [], overlay: { has: false, type: '', wm: false, files: [], snippets: [] }, buttons: [] };
+
+    const mPath = findFile('AndroidManifest.xml');
+    if (!mPath) return result;
+    const xml = zipFiles[mPath] || '';
+
+    // Parse permissions
+    const permRegex = /android:name="([^"]+)"/g;
+    let m;
+    while ((m = permRegex.exec(xml)) !== null) {
+        result.permissions.push(m[1]);
+    }
+
+    // Parse package
+    const pkgMatch = xml.match(/package="([^"]+)"/);
+    result.manifest.package = pkgMatch ? pkgMatch[1] : '';
+
+    // Parse services
+    const svcRegex = /<service[^>]*>/g;
+    while ((m = svcRegex.exec(xml)) !== null) {
+        const tag = m[0];
+        const nameMatch = tag.match(/android:name="([^"]+)"/);
+        result.services.push({ name: nameMatch ? nameMatch[1] : '' });
+    }
+
+    // Scan Java/Kotlin for overlay
+    const javaFiles = findFiles('.java').concat(findFiles('.kt'));
+    const overlayKW = ['WindowManager', 'TYPE_APPLICATION_OVERLAY', 'TYPE_SYSTEM_ALERT', 'SYSTEM_ALERT_WINDOW', 'addView', 'floating', 'overlay', 'bubble', 'float'];
+
+    for (const f of javaFiles) {
+        const content = zipFiles[f] || '';
+        if (content.includes('WindowManager')) { result.overlay.wm = true; result.overlay.has = true; }
+        if (content.includes('TYPE_APPLICATION_OVERLAY')) { result.overlay.type = 'APPLICATION_OVERLAY'; result.overlay.has = true; }
+        if (content.includes('TYPE_SYSTEM_ALERT')) { result.overlay.type = 'SYSTEM_ALERT'; result.overlay.has = true; }
+
+        for (const kw of overlayKW) {
+            if (content.includes(kw)) {
+                result.overlay.files.push(f);
+                // Extract snippet
+                const lines = content.split('\n');
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].includes(kw)) {
+                        const start = Math.max(0, i - 3);
+                        const end = Math.min(lines.length, i + 4);
+                        result.overlay.snippets.push({ file: f, keyword: kw, snippet: lines.slice(start, end).join('\n').substring(0, 300) });
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        // Buttons
+        const btnRegex = /(?:Button|ImageButton|FloatingActionButton)\s*\([^)]*\)/g;
+        let bm;
+        while ((bm = btnRegex.exec(content)) !== null) {
+            result.buttons.push({ file: f, code: bm[0].substring(0, 80) });
+        }
+    }
+
+    return result;
+}
+
+function analyzeIOS() {
+    const result = { platform: 'ios', info_plist: {}, permissions: [], apis: [] };
+    const pPath = findFile('Info.plist');
+    if (!pPath) return result;
+    const plist = zipFiles[pPath] || '';
+    // Simple plist parsing
+    const keys = ['CFBundleIdentifier', 'CFBundleShortVersionString', 'CFBundleName', 'NSAccessibilityUsageDescription'];
+    for (const key of keys) {
+        const regex = new RegExp(`<key>${key}</key>\\s*<string>([^<]+)</string>`);
+        const match = plist.match(regex);
+        if (match) result.info_plist[key] = match[1];
+    }
+    // Check Swift/ObjC files for accessibility
+    const swiftFiles = findFiles('.swift').concat(findFiles('.m'));
+    const a11yKW = ['UIAccessibility', 'accessibilityLabel', 'accessibilityHint', 'isAccessibilityElement'];
+    for (const f of swiftFiles) {
+        const content = zipFiles[f] || '';
+        for (const kw of a11yKW) {
+            if (content.includes(kw)) result.apis.push({ api: kw, file: f });
+        }
+    }
+    return result;
+}
+
+// ============================================================
+// MARKDOWN GENERATOR
+// ============================================================
+function generateMarkdown(platform, a) {
+    const sections = [];
+    // Overview
+    sections.push(`# ${platform.title()} 项目文档\n\n## 项目概览\n`);
+    if (platform === 'chrome') {
+        const m = a.manifest;
+        sections.push(`- **名称**: ${m.name || 'N/A'}\n- **版本**: ${m.version || 'N/A'}\n- **描述**: ${m.description || 'N/A'}\n- **Manifest V**: ${m.manifest_version || 'N/A'}`);
+    } else if (platform === 'android') {
+        sections.push(`- **包名**: ${a.manifest.package || 'N/A'}\n- **权限数**: ${a.permissions.length}\n- **悬浮窗**: ${a.overlay.has ? a.overlay.type : '无'}`);
+    } else if (platform === 'ios') {
+        const p = a.info_plist;
+        sections.push(`- **Bundle ID**: ${p.CFBundleIdentifier || 'N/A'}\n- **版本**: ${p.CFBundleShortVersionString || 'N/A'}`);
+    }
+
+    // Setup
+    sections.push(`\n## 安装指南\n`);
+    if (platform === 'chrome') sections.push('1. 打开 `chrome://extensions/`\n2. 开启开发者模式\n3. 加载已解压的扩展程序\n4. 选择项目目录');
+    else if (platform === 'android') sections.push('1. Android Studio 打开项目\n2. 同步 Gradle\n3. 连接设备\n4. 设置 > 无障碍 启用服务\n5. 授予悬浮窗权限（如需要）');
+    else sections.push('1. Xcode 打开项目\n2. 安装依赖\n3. 连接设备\n4. 设置 > 辅助功能 启用');
+
+    // API
+    sections.push(`\n## API 参考\n`);
+    if (platform === 'chrome' && a.content_scripts.length) {
+        sections.push('### Content Scripts\n');
+        a.content_scripts.forEach((cs, i) => {
+            sections.push(`**脚本 ${i+1}**\n- 匹配: \`${cs.matches.join(', ')}\`\n- JS: \`${cs.js.join(', ')}\`\n`);
+        });
+    } else if (platform === 'android' && a.services.length) {
+        sections.push('### 服务\n');
+        a.services.forEach(s => sections.push(`- \`${s.name}\``));
+    }
+
+    // Permissions
+    sections.push(`\n## 权限说明\n`);
+    if (a.permissions.length) {
+        sections.push('| 权限 | 说明 |\n|------|------|\n');
+        const desc = { 'SYSTEM_ALERT_WINDOW': '显示悬浮窗', 'FOREGROUND_SERVICE': '前台服务', 'INTERNET': '网络访问', 'BIND_ACCESSIBILITY_SERVICE': '绑定无障碍服务', 'activeTab': '访问活动标签页', 'storage': '本地存储' };
+        a.permissions.forEach(p => sections.push(`| \`${p}\` | ${desc[p] || '系统权限'} |`));
+    } else sections.push('无特殊权限。');
+
+    // Overlay docs (Android)
+    if (platform === 'android' && a.overlay.has) {
+        sections.push(`\n## 悬浮窗文档\n`);
+        sections.push(`- **类型**: \`${a.overlay.type}\`\n- **WindowManager**: ${a.overlay.wm ? '是' : '否'}\n`);
+        if (a.overlay.files.length) {
+            sections.push('\n### 相关文件\n');
+            a.overlay.files.forEach(f => sections.push(`- \`${f}\``));
+        }
+        if (a.overlay.snippets.length) {
+            sections.push('\n### 关键代码\n');
+            a.overlay.snippets.slice(0, 3).forEach(s => {
+                sections.push(`**${s.file}** (\`${s.keyword}\`)\n\`\`\`java\n${s.snippet}\n\`\`\`\n`);
+            });
+        }
+        if (a.buttons.length) {
+            sections.push('### 检测到的按钮\n');
+            sections.push('| 文件 | 代码 |\n|------|------|\n');
+            a.buttons.slice(0, 8).forEach(b => sections.push(`| \`${b.file}\` | \`${b.code}\` |`));
+        }
+    }
+
+    // Platform guide
+    sections.push(`\n## 平台指南\n`);
+    if (platform === 'chrome') sections.push('- 遵循最佳实践\n- 最小化权限\n- 支持 Manifest V3');
+    else if (platform === 'android') {
+        sections.push('- 正确实现生命周期\n- 及时响应事件\n- 提供无障碍描述');
+        if (a.overlay.has) sections.push('\n### 悬浮窗最佳实践\n- 使用 `TYPE_APPLICATION_OVERLAY`\n- 处理 `canDrawOverlays` 权限\n- 适配不同屏幕\n- 支持拖拽和双击关闭');
+    } else sections.push('- 设置 accessibilityLabel\n- 支持 VoiceOver');
+
+    return sections.join('\n');
+}
+
+// ============================================================
+// HTML GENERATOR
+// ============================================================
+function generateHTML(platform, a) {
+    const md = generateMarkdown(platform, a);
+    // Simple markdown → HTML
+    let content = md
         .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/^### (.+)$/gm, '<h3>$1</h3>')
         .replace(/^## (.+)$/gm, '<h2>$1</h2>')
         .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-        .replace(/^\| (.+)$/gm, (m, content) => {
-            const cells = content.split(' | ');
-            if (cells.every(c => /^[-:]+$/.test(c))) return '';
-            return '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+        .replace(/^\| (.+)$/gm, (m, c) => {
+            const cells = c.split(' | ');
+            if (cells.every(x => /^[-:]+$/.test(x))) return '';
+            return '<tr>' + cells.map(x => `<td>${x}</td>`).join('') + '</tr>';
         })
         .replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table>$1</table>')
         .replace(/<\/table>\s*<table>/g, '')
         .replace(/^- (.+)$/gm, '<li>$1</li>')
-        .replace(/(<li>[\s\S]*?<\/li>)/g, (m) => {
-            if (!m.startsWith('<ul>')) return '<ul>' + m + '</ul>';
-            return m;
-        })
-        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/^---$/gm, '<hr>')
         .replace(/\n\n/g, '<br><br>')
         .replace(/\n/g, '<br>');
-    return html;
+
+    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${platform} 文档</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,sans-serif;line-height:1.6;color:#333;background:#f5f5f5;padding:2rem}div{max-width:800px;margin:0 auto;background:#fff;padding:2rem;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}h1{font-size:1.8rem;border-bottom:3px solid #e94560;padding-bottom:.5rem;margin-bottom:1rem}h2{font-size:1.3rem;color:#16213e;margin:1.5rem 0 .75rem}h3{font-size:1.1rem;color:#0f3460;margin:1rem 0 .5rem}code{background:#e8e8e8;padding:.1rem .3rem;border-radius:3px;font-size:.9em}pre{background:#1a1a2e;color:#e8e8e8;padding:1rem;border-radius:8px;overflow-x:auto;margin:.75rem 0}pre code{background:0 0;padding:0;color:inherit}table{width:100%;border-collapse:collapse;margin:.75rem 0}th,td{padding:.5rem .75rem;text-align:left;border-bottom:1px solid #ddd}th{background:#16213e;color:#fff}tr:hover{background:#f0f0f0}ul,ol{margin:.5rem 0 .5rem 1.5rem}li{margin:.2rem 0}hr{border:none;border-top:1px solid #ddd;margin:1rem 0}</style></head><body><div>${content}</div></body></html>`;
 }
 
-function escapeHtml(str) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return str.replace(/[&<>"']/g, c => map[c]);
+// ============================================================
+// UI RESULT
+// ============================================================
+function showResult(r) {
+    // Summary
+    const summary = document.getElementById('analysis-summary');
+    let html = '';
+    html += `<div class="summary-row"><span class="summary-key">平台</span><span class="summary-val">${r.platform}</span></div>`;
+    if (r.platform === 'chrome' && r.analysis.manifest) {
+        html += `<div class="summary-row"><span class="summary-key">名称</span><span class="summary-val">${r.analysis.manifest.name || 'N/A'}</span></div>`;
+        html += `<div class="summary-row"><span class="summary-key">版本</span><span class="summary-val">${r.analysis.manifest.version || 'N/A'}</span></div>`;
+        html += `<div class="summary-row"><span class="summary-key">权限</span><span class="summary-val">${r.analysis.permissions.length} 个</span></div>`;
+    } else if (r.platform === 'android') {
+        html += `<div class="summary-row"><span class="summary-key">包名</span><span class="summary-val">${r.analysis.manifest.package || 'N/A'}</span></div>`;
+        html += `<div class="summary-row"><span class="summary-key">权限</span><span class="summary-val">${r.analysis.permissions.length} 个</span></div>`;
+        html += `<div class="summary-row"><span class="summary-key">悬浮窗</span><span class="summary-val">${r.analysis.overlay.has ? '<span class="badge-yes">✓ ' + r.analysis.overlay.type + '</span>' : '<span class="badge-no">✗ 无</span>'}</span></div>`;
+        html += `<div class="summary-row"><span class="summary-key">按钮</span><span class="summary-val">${r.analysis.buttons.length} 个</span></div>`;
+        html += `<div class="summary-row"><span class="summary-key">源文件</span><span class="summary-val">${r.analysis.overlay.files.length} 个</span></div>`;
+    }
+    html += `<div class="summary-row"><span class="summary-key">文档长度</span><span class="summary-val">${r.markdown.length} 字符</span></div>`;
+    summary.innerHTML = html;
+
+    // Markdown
+    document.getElementById('doc-markdown').innerHTML = renderMd(r.markdown);
+    // HTML preview
+    document.getElementById('doc-preview').innerHTML = r.html_doc.replace(/<!DOCTYPE[\s\S]*?<body>/i, '').replace(/<\/body><\/html>/i, '');
+
+    document.getElementById('results').classList.add('active');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ===== TABS =====
-function switchTab(tab) {
+function renderMd(md) {
+    return md
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/^\| (.+)$/gm, (m, c) => {
+            const cells = c.split(' | ');
+            if (cells.every(x => /^[-:]+$/.test(x))) return '';
+            return '<tr>' + cells.map(x => `<td>${x}</td>`).join('') + '</tr>';
+        })
+        .replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table>$1</table>')
+        .replace(/<\/table>\s*<table>/g, '')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^---$/gm, '<hr>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+}
+
+function switchTab(tab, el) {
     document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
-
+    el.classList.add('active');
     document.getElementById('doc-markdown').style.display = tab === 'markdown' ? 'block' : 'none';
     document.getElementById('doc-preview').style.display = tab === 'preview' ? 'block' : 'none';
 }
 
-// ===== DOWNLOAD =====
-async function downloadDoc(fmt) {
-    if (!currentAnalysis) return;
+function downloadDoc(fmt) {
+    if (!currentResult) return;
+    const content = fmt === 'md' ? currentResult.markdown : currentResult.htmlDoc;
+    const blob = new Blob([content], { type: fmt === 'md' ? 'text/markdown' : 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentResult.platform}_docs.${fmt}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`📥 已下载 ${fmt.toUpperCase()}`, 'success');
+}
 
-    const content = fmt === 'md' ? currentAnalysis.markdown : currentAnalysis.html_doc;
+// ============================================================
+// DEMO (inline Android example)
+// ============================================================
+async function loadDemo() {
+    setLoading(true, '加载示例...');
 
-    try {
-        const resp = await fetch(`/api/download/${fmt}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content, platform: currentAnalysis.platform || 'project' })
+    // Create a fake Android project in memory
+    const demoZip = new JSZip();
+    demoZip.file('AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.floatingassistant">
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application>
+        <service android:name=".FloatingAccessibilityService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_config" />
+        </service>
+    </application>
+</manifest>`);
+
+    demoZip.file('src/com/example/floatingassistant/FloatingAccessibilityService.java', `package com.example.floatingassistant;
+
+import android.accessibilityservice.AccessibilityService;
+import android.graphics.PixelFormat;
+import android.os.Build;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.accessibility.AccessibilityEvent;
+import android.widget.Button;
+import android.widget.ImageButton;
+
+public class FloatingAccessibilityService extends AccessibilityService {
+    private WindowManager windowManager;
+    private View floatingView;
+
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {}
+
+    @Override
+    public void onInterrupt() {}
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        createFloatingView();
+    }
+
+    private void createFloatingView() {
+        floatingView = LayoutInflater.from(this).inflate(R.layout.floating_layout, null);
+
+        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+        );
+        params.gravity = Gravity.TOP | Gravity.START;
+        params.x = 100;
+        params.y = 200;
+
+        windowManager.addView(floatingView, params);
+
+        Button closeButton = floatingView.findViewById(R.id.close_button);
+        closeButton.setOnClickListener(v -> {
+            windowManager.removeView(floatingView);
+            stopSelf();
         });
 
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${currentAnalysis.platform || 'project'}_docs.${fmt}`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast(`📥 ${fmt.toUpperCase()} 文档已下载`, 'success');
-    } catch (err) {
-        showToast('下载失败: ' + err.message, 'error');
+        ImageButton dragHandle = floatingView.findViewById(R.id.drag_handle);
+        setupDrag(dragHandle, params);
     }
+
+    private void setupDrag(View handle, WindowManager.LayoutParams params) {
+        // Drag implementation
+    }
+}`);
+
+    const blob = await demoZip.generateAsync({ type: 'blob' });
+    setFile(new File([blob], 'demo-android.zip', { type: 'application/zip' }));
+    selectedPlatform = 'android';
+    document.querySelectorAll('.platform-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.platform === 'android');
+    });
+    setLoading(false);
+    showToast('✅ 示例已加载', 'success');
 }
 
-// ===== PWA INSTALL =====
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-
-// ===== TOAST =====
-function showToast(msg, type) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.className = `toast toast-${type} show`;
-    setTimeout(() => toast.classList.remove('show'), 3000);
-}
+// ============================================================
+// PWA
+// ============================================================
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 </script>
 </body>
 </html>
